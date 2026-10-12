@@ -1,0 +1,243 @@
+rules_version = '2';
+
+// Task Mate security rules.
+//
+// Privacy: there is no way to list users. A chat can only be started by
+// looking up someone's exact email in /emailIndex, and people can only read
+// conversations they are a member of. Tasks, bookmarks, and memberships under
+// /users/{uid} are private to that user. Posts in private communities are
+// readable by members only.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isMember(data) {
+      return signedIn() && request.auth.uid in data.memberIds;
+    }
+
+    // Only these fields change in this update.
+    function onlyChanges(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    function isText(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+
+    // ---------------------------------------------------------------- users
+
+    // Public profile: name only. Readable one at a time by signed-in users
+    // (to show names in chats); never listable.
+    match /users/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if isSelf(uid)
+        && request.resource.data.keys().hasOnly(['name', 'createdAt'])
+        && isText(request.resource.data.name, 1, 80);
+      allow delete: if false;
+
+      // Private tasks.
+      match /tasks/{taskId} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid)
+          && request.resource.data.id == taskId
+          && isText(request.resource.data.title, 1, 300)
+          && request.resource.data.get('description', '') is string
+          && request.resource.data.get('description', '').size() <= 5000;
+      }
+
+      // Private saved posts.
+      match /bookmarks/{postId} {
+        allow read, delete: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['createdAt']);
+      }
+
+      // The user's own list of joined communities, kept in step with
+      // /communities/{id}/members/{uid}.
+      match /joined/{communityId} {
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['joinedAt'])
+          && existsAfter(/databases/$(database)/documents/communities/$(communityId)/members/$(uid));
+        allow delete: if isSelf(uid)
+          && !existsAfter(/databases/$(database)/documents/communities/$(communityId)/members/$(uid));
+      }
+    }
+
+    // Lookup of an exact (lowercased) email -> uid. Only readable by
+    // document id, so knowing the full email is required.
+    match /emailIndex/{email} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if signedIn()
+        && request.auth.token.email != null
+        && email == request.auth.token.email.lower()
+        && request.resource.data.keys().hasOnly(['uid', 'name'])
+        && request.resource.data.uid == request.auth.uid
+        && isText(request.resource.data.name, 0, 80);
+      allow delete: if false;
+    }
+
+    // ----------------------------------------------------------- community
+
+    function communityPath(id) {
+      return /databases/$(database)/documents/communities/$(id);
+    }
+
+    function isCommunityMember(id) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/communities/$(id)/members/$(request.auth.uid));
+    }
+
+    match /communities/{communityId} {
+      // Community names and details are public to signed-in users.
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.creatorId == request.auth.uid
+        && isText(request.resource.data.name, 1, 80)
+        && isText(request.resource.data.description, 0, 1000)
+        && isText(request.resource.data.topic, 0, 80)
+        && request.resource.data.isPrivate is bool
+        && request.resource.data.memberCount == 1
+        && request.resource.data.postCount == 0
+        && existsAfter(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+      allow update: if signedIn() && (
+        // Joining or leaving changes memberCount by exactly one, together
+        // with the user's own membership document.
+        (onlyChanges(['memberCount'])
+          && ((request.resource.data.memberCount == resource.data.memberCount + 1
+                && !exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid))
+                && existsAfter(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)))
+            || (request.resource.data.memberCount == resource.data.memberCount - 1
+                && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid))
+                && !existsAfter(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)))))
+        // A new post bumps postCount by one.
+        || (onlyChanges(['postCount'])
+          && request.resource.data.postCount == resource.data.postCount + 1)
+      );
+      allow delete: if false;
+
+      match /members/{memberId} {
+        allow get: if signedIn();
+        allow list: if false;
+        allow create: if isSelf(memberId)
+          && request.resource.data.keys().hasOnly(['joinedAt']);
+        allow delete: if isSelf(memberId);
+      }
+    }
+
+    // A post's visibility must match its community: "private" for private
+    // communities, otherwise "public".
+    function expectedVisibility(data) {
+      return data.communityId == null
+        ? 'public'
+        : (get(communityPath(data.communityId)).data.isPrivate ? 'private' : 'public');
+    }
+
+    function canReadPost(data) {
+      return signedIn()
+        && (data.visibility == 'public' || isCommunityMember(data.communityId));
+    }
+
+    // Toggling your own like: likedBy gains or loses exactly your uid and
+    // likeCount moves by one.
+    function isOwnLikeToggle() {
+      let uid = request.auth.uid;
+      let before = resource.data.likedBy.toSet();
+      let after = request.resource.data.likedBy.toSet();
+      return onlyChanges(['likedBy', 'likeCount']) && (
+        (!(uid in before)
+          && after == before.union([uid].toSet())
+          && request.resource.data.likeCount == resource.data.likeCount + 1)
+        || (uid in before
+          && after == before.difference([uid].toSet())
+          && request.resource.data.likeCount == resource.data.likeCount - 1)
+      );
+    }
+
+    match /posts/{postId} {
+      allow read: if canReadPost(resource.data);
+      allow create: if signedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && isText(request.resource.data.authorName, 1, 80)
+        && isText(request.resource.data.title, 1, 200)
+        && isText(request.resource.data.body, 1, 5000)
+        && request.resource.data.tags is list
+        && request.resource.data.tags.size() <= 10
+        && request.resource.data.likedBy == []
+        && request.resource.data.likeCount == 0
+        && request.resource.data.commentCount == 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.visibility == expectedVisibility(request.resource.data)
+        // Private communities only accept posts from members.
+        && (request.resource.data.visibility == 'public'
+          || isCommunityMember(request.resource.data.communityId));
+      allow update: if canReadPost(resource.data) && (
+        isOwnLikeToggle()
+        || (onlyChanges(['commentCount'])
+          && request.resource.data.commentCount == resource.data.commentCount + 1)
+      );
+      allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
+
+      match /comments/{commentId} {
+        function post() {
+          return get(/databases/$(database)/documents/posts/$(postId)).data;
+        }
+
+        allow read: if canReadPost(post());
+        allow create: if canReadPost(post())
+          && request.resource.data.authorId == request.auth.uid
+          && isText(request.resource.data.authorName, 1, 80)
+          && isText(request.resource.data.body, 1, 2000)
+          && request.resource.data.likedBy == []
+          && request.resource.data.likeCount == 0
+          && request.resource.data.createdAt == request.time;
+        allow update: if canReadPost(post()) && isOwnLikeToggle();
+        allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
+      }
+    }
+
+    // ---------------------------------------------------------------- chat
+
+    match /conversations/{conversationId} {
+      // A missing document may be read so the app can check whether a
+      // one-on-one chat already exists.
+      allow get: if signedIn() && (resource == null || isMember(resource.data));
+      // Only queries filtered to the user's own conversations.
+      allow list: if isMember(resource.data);
+      allow create: if isMember(request.resource.data)
+        && request.resource.data.memberIds is list
+        && request.resource.data.memberIds.size() >= 2
+        && request.resource.data.memberIds.size() <= 50
+        && request.resource.data.isGroup is bool;
+      // Members update read state, typing, and the last-message summary.
+      // Membership and the chat type cannot be changed.
+      allow update: if isMember(resource.data)
+        && request.resource.data.memberIds == resource.data.memberIds
+        && request.resource.data.isGroup == resource.data.isGroup;
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        function conversation() {
+          return get(/databases/$(database)/documents/conversations/$(conversationId)).data;
+        }
+
+        allow read: if isMember(conversation());
+        allow create: if isMember(conversation())
+          && request.resource.data.keys().hasOnly(['senderId', 'text', 'sentAt'])
+          && request.resource.data.senderId == request.auth.uid
+          && isText(request.resource.data.text, 1, 2000)
+          && request.resource.data.sentAt == request.time;
+        allow update, delete: if false;
+      }
+    }
+  }
+}
