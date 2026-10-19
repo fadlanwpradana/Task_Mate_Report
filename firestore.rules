@@ -163,6 +163,14 @@ service cloud.firestore {
       );
     }
 
+    function isOwnViewIncrement(postId) {
+      let viewPath = /databases/$(database)/documents/posts/$(postId)/views/$(request.auth.uid);
+      return onlyChanges(['viewCount'])
+        && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1
+        && !exists(viewPath)
+        && existsAfter(viewPath);
+    }
+
     match /posts/{postId} {
       allow read: if canReadPost(resource.data);
       allow create: if signedIn()
@@ -174,6 +182,7 @@ service cloud.firestore {
         && request.resource.data.tags.size() <= 10
         && request.resource.data.likedBy == []
         && request.resource.data.likeCount == 0
+        && request.resource.data.viewCount == 0
         && request.resource.data.commentCount == 0
         && request.resource.data.createdAt == request.time
         && request.resource.data.visibility == expectedVisibility(request.resource.data)
@@ -182,6 +191,7 @@ service cloud.firestore {
           || isCommunityMember(request.resource.data.communityId));
       allow update: if canReadPost(resource.data) && (
         isOwnLikeToggle()
+        || isOwnViewIncrement(postId)
         || (onlyChanges(['commentCount'])
           && request.resource.data.commentCount == resource.data.commentCount + 1)
       );
@@ -202,6 +212,22 @@ service cloud.firestore {
           && request.resource.data.createdAt == request.time;
         allow update: if canReadPost(post()) && isOwnLikeToggle();
         allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
+      }
+
+      match /views/{viewerId} {
+        function post() {
+          return get(/databases/$(database)/documents/posts/$(postId)).data;
+        }
+
+        allow get: if viewerId == request.auth.uid && canReadPost(post());
+        allow list: if false;
+        allow create: if viewerId == request.auth.uid
+          && canReadPost(post())
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && request.resource.data.createdAt == request.time
+          && getAfter(/databases/$(database)/documents/posts/$(postId))
+            .data.viewCount == post().get('viewCount', 0) + 1;
+        allow update, delete: if false;
       }
     }
 

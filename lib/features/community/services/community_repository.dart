@@ -23,6 +23,9 @@ abstract class CommunityRepository extends ChangeNotifier {
 
   Future<void> toggleLike(String postId);
 
+  /// Records one view per signed-in user (or local demo installation).
+  Future<void> recordView(String postId);
+
   Future<void> toggleBookmark(String postId);
 
   Future<void> addComment(String postId, CommentModel comment);

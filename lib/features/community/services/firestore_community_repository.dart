@@ -16,7 +16,8 @@ typedef _Sub = StreamSubscription<QuerySnapshot<Map<String, dynamic>>>;
 ///   `communities/{id}/members/{uid}` marks membership.
 /// * `posts/{id}`: post fields, `visibility` ("public", or "private" for
 ///   posts in private communities, readable by members only), `likedBy`,
-///   likeCount, commentCount. Comments live in `posts/{id}/comments`.
+///   likeCount, viewCount, commentCount. Comments and unique viewer records
+///   live in `posts/{id}/comments` and `posts/{id}/views/{uid}`.
 /// * `users/{uid}/joined/{communityId}` and `users/{uid}/bookmarks/{postId}`:
 ///   the user's own memberships and saved posts.
 class FirestoreCommunityRepository extends CommunityRepository {
@@ -187,6 +188,7 @@ class FirestoreCommunityRepository extends CommunityRepository {
         'tags': post.tags,
         'likedBy': <String>[],
         'likeCount': 0,
+        'viewCount': 0,
         'commentCount': 0,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -206,6 +208,23 @@ class FirestoreCommunityRepository extends CommunityRepository {
         .collection('posts')
         .doc(postId)
         .update(_likeChange(post.likedByMe));
+  }
+
+  @override
+  Future<void> recordView(String postId) async {
+    final uid = _requireUid();
+    final postRef = _db.collection('posts').doc(postId);
+    final viewRef = postRef.collection('views').doc(uid);
+    await _db.runTransaction((transaction) async {
+      final view = await transaction.get(viewRef);
+      if (view.exists) return;
+      final post = await transaction.get(postRef);
+      if (!post.exists) return;
+      final viewCount = (post.data()?['viewCount'] as num?)?.toInt() ?? 0;
+      transaction
+        ..set(viewRef, {'createdAt': FieldValue.serverTimestamp()})
+        ..update(postRef, {'viewCount': viewCount + 1});
+    });
   }
 
   @override
@@ -354,6 +373,7 @@ class FirestoreCommunityRepository extends CommunityRepository {
       body: data['body'] as String? ?? '',
       tags: (data['tags'] as List<dynamic>? ?? const []).cast<String>(),
       likeCount: (data['likeCount'] as num?)?.toInt() ?? 0,
+      viewCount: (data['viewCount'] as num?)?.toInt() ?? 0,
       likedByMe: _likedByMe(data),
       bookmarked: _bookmarks.contains(id),
       comments: _comments[id] ?? const [],

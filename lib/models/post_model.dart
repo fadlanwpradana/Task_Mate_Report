@@ -15,6 +15,7 @@ class PostModel {
     this.communityId,
     this.tags = const [],
     this.likeCount = 0,
+    this.viewCount = 0,
     this.likedByMe = false,
     this.bookmarked = false,
     this.comments = const [],
@@ -33,6 +34,7 @@ class PostModel {
   final String body;
   final List<String> tags;
   final int likeCount;
+  final int viewCount;
   final bool likedByMe;
   final bool bookmarked;
 
@@ -48,6 +50,7 @@ class PostModel {
 
   PostModel copyWith({
     int? likeCount,
+    int? viewCount,
     bool? likedByMe,
     bool? bookmarked,
     List<CommentModel>? comments,
@@ -64,6 +67,7 @@ class PostModel {
       tags: tags,
       createdAt: createdAt,
       likeCount: likeCount ?? this.likeCount,
+      viewCount: viewCount ?? this.viewCount,
       likedByMe: likedByMe ?? this.likedByMe,
       bookmarked: bookmarked ?? this.bookmarked,
       comments: comments ?? this.comments,
@@ -82,6 +86,7 @@ class PostModel {
     'body': body,
     'tags': tags,
     'likeCount': likeCount,
+    'viewCount': viewCount,
     'likedByMe': likedByMe,
     'bookmarked': bookmarked,
     'comments': comments.map((c) => c.toJson()).toList(),
@@ -100,6 +105,7 @@ class PostModel {
       body: json['body'] as String,
       tags: (json['tags'] as List<dynamic>? ?? []).cast<String>(),
       likeCount: json['likeCount'] as int? ?? 0,
+      viewCount: json['viewCount'] as int? ?? 0,
       likedByMe: json['likedByMe'] as bool? ?? false,
       bookmarked: json['bookmarked'] as bool? ?? false,
       comments: (json['comments'] as List<dynamic>? ?? [])

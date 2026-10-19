@@ -175,6 +175,17 @@ class PostActions extends StatelessWidget {
           '${post.totalComments}',
           style: TextStyle(color: AppColors.secondaryText),
         ),
+        const SizedBox(width: 12),
+        Icon(
+          Icons.visibility_outlined,
+          size: 19,
+          color: AppColors.secondaryText,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '${post.viewCount}',
+          style: TextStyle(color: AppColors.secondaryText),
+        ),
         const Spacer(),
         IconButton(
           tooltip: post.bookmarked ? l10n.removeBookmark : l10n.bookmark,
