@@ -11,9 +11,10 @@ class LocalCommunityRepository extends CommunityRepository {
     final savedCommunities = _storage.readList(_communitiesKey);
     final savedPosts = _storage.readList(_postsKey);
     final savedViews = _storage.readList(_viewedPostsKey);
-    _viewedPostIds = {
+    _viewedPostAt = {
       for (final item in savedViews ?? const [])
-        if (item['id'] is String) item['id'] as String,
+        if (item['id'] is String)
+          item['id'] as String: _readViewTime(item['viewedAt']),
     };
     if (savedCommunities == null || savedPosts == null) {
       _communities = _sampleCommunities();
@@ -34,7 +35,7 @@ class LocalCommunityRepository extends CommunityRepository {
   final StorageService _storage;
   late List<CommunityModel> _communities;
   late List<PostModel> _posts;
-  late Set<String> _viewedPostIds;
+  late Map<String, DateTime> _viewedPostAt;
 
   @override
   List<PostModel> get allPosts => [..._posts];
@@ -79,11 +80,14 @@ class LocalCommunityRepository extends CommunityRepository {
 
   @override
   Future<void> recordView(String postId) async {
-    if (_viewedPostIds.contains(postId) ||
+    final now = DateTime.now();
+    final previousView = _viewedPostAt[postId];
+    if ((previousView != null &&
+            now.difference(previousView) < const Duration(hours: 24)) ||
         !_posts.any((post) => post.id == postId)) {
       return;
     }
-    _viewedPostIds.add(postId);
+    _viewedPostAt[postId] = now;
     _updatePost(postId, (post) => post.copyWith(viewCount: post.viewCount + 1));
     await _save();
   }
@@ -141,8 +145,22 @@ class LocalCommunityRepository extends CommunityRepository {
     await _storage.writeList(_postsKey, _posts.map((p) => p.toJson()).toList());
     await _storage.writeList(
       _viewedPostsKey,
-      _viewedPostIds.map((id) => {'id': id}).toList(),
+      _viewedPostAt.entries
+          .map(
+            (entry) => {
+              'id': entry.key,
+              'viewedAt': entry.value.toIso8601String(),
+            },
+          )
+          .toList(),
     );
+  }
+
+  static DateTime _readViewTime(Object? value) {
+    // Old demo records only stored the post id. Treat them as recent so an
+    // upgrade cannot immediately manufacture another view.
+    if (value is! String) return DateTime.now();
+    return DateTime.tryParse(value) ?? DateTime.now();
   }
 
   static final _seedTime = DateTime.now();

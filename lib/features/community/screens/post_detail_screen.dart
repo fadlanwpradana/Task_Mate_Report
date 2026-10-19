@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/app_scope.dart';
@@ -30,6 +32,24 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     super.initState();
     // Load (and keep listening to) this post's comments while it's open.
     _community = AppScope.of(context).community..openPost(widget.postId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_recordView());
+    });
+  }
+
+  Future<void> _recordView() async {
+    try {
+      await _community.recordView(widget.postId);
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'community',
+          context: ErrorDescription('while recording a post detail view'),
+        ),
+      );
+    }
   }
 
   @override

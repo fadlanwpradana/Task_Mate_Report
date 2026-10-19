@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/app_scope.dart';
@@ -8,9 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/post_model.dart';
 import '../../../shared/widgets/common_widgets.dart';
 import '../../../shared/widgets/empty_state.dart';
-import '../services/community_repository.dart';
 import '../widgets/post_card.dart';
-import '../widgets/post_view_observer.dart';
 import 'search_screen.dart';
 
 /// Body of the Community tab: For You / Following / Trending feeds.
@@ -23,13 +20,6 @@ class CommunityFeedScreen extends StatefulWidget {
 
 class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
   PostType? _typeFilter;
-  final _scrollChanges = ValueNotifier(0);
-
-  @override
-  void dispose() {
-    _scrollChanges.dispose();
-    super.dispose();
-  }
 
   Future<void> _chooseTypeFilter() async {
     final l10n = AppLocalizations.of(context);
@@ -112,36 +102,24 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
             child: ListenableBuilder(
               listenable: repository,
               builder: (context, _) {
-                return NotificationListener<ScrollNotification>(
-                  onNotification: (_) {
-                    _scrollChanges.value++;
-                    return false;
-                  },
-                  child: TabBarView(
-                    children: [
-                      _PostList(
-                        posts: _filtered(repository.posts),
-                        repository: repository,
-                        scrollChanges: _scrollChanges,
-                        emptyTitle: l10n.noPostsTitle,
-                        emptyDescription: l10n.noPostsDescription,
-                      ),
-                      _PostList(
-                        posts: _filtered(repository.followingPosts),
-                        repository: repository,
-                        scrollChanges: _scrollChanges,
-                        emptyTitle: l10n.noPostsTitle,
-                        emptyDescription: l10n.noFollowingPosts,
-                      ),
-                      _PostList(
-                        posts: _filtered(repository.trendingPosts),
-                        repository: repository,
-                        scrollChanges: _scrollChanges,
-                        emptyTitle: l10n.noPostsTitle,
-                        emptyDescription: l10n.noPostsDescription,
-                      ),
-                    ],
-                  ),
+                return TabBarView(
+                  children: [
+                    _PostList(
+                      posts: _filtered(repository.posts),
+                      emptyTitle: l10n.noPostsTitle,
+                      emptyDescription: l10n.noPostsDescription,
+                    ),
+                    _PostList(
+                      posts: _filtered(repository.followingPosts),
+                      emptyTitle: l10n.noPostsTitle,
+                      emptyDescription: l10n.noFollowingPosts,
+                    ),
+                    _PostList(
+                      posts: _filtered(repository.trendingPosts),
+                      emptyTitle: l10n.noPostsTitle,
+                      emptyDescription: l10n.noPostsDescription,
+                    ),
+                  ],
                 );
               },
             ),
@@ -159,15 +137,11 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
 class _PostList extends StatelessWidget {
   const _PostList({
     required this.posts,
-    required this.repository,
-    required this.scrollChanges,
     required this.emptyTitle,
     required this.emptyDescription,
   });
 
   final List<PostModel> posts;
-  final CommunityRepository repository;
-  final ValueListenable<int> scrollChanges;
   final String emptyTitle;
   final String emptyDescription;
 
@@ -186,13 +160,7 @@ class _PostList extends StatelessWidget {
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final post = posts[index];
-        return PostViewObserver(
-          key: ValueKey(post.id),
-          postId: post.id,
-          onView: () => repository.recordView(post.id),
-          scrollChanges: scrollChanges,
-          child: PostCard(post: post),
-        );
+        return PostCard(key: ValueKey(post.id), post: post);
       },
     );
   }

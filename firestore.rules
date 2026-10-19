@@ -167,8 +167,12 @@ service cloud.firestore {
       let viewPath = /databases/$(database)/documents/posts/$(postId)/views/$(request.auth.uid);
       return onlyChanges(['viewCount'])
         && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1
-        && !exists(viewPath)
-        && existsAfter(viewPath);
+        && existsAfter(viewPath)
+        && getAfter(viewPath).data.createdAt == request.time
+        && ((!exists(viewPath)
+            && getAfter(viewPath).data.keys().hasOnly(['createdAt']))
+          || (exists(viewPath)
+            && get(viewPath).data.createdAt <= request.time - duration.value(24, 'h')));
     }
 
     match /posts/{postId} {
@@ -227,7 +231,14 @@ service cloud.firestore {
           && request.resource.data.createdAt == request.time
           && getAfter(/databases/$(database)/documents/posts/$(postId))
             .data.viewCount == post().get('viewCount', 0) + 1;
-        allow update, delete: if false;
+        allow update: if viewerId == request.auth.uid
+          && canReadPost(post())
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && request.resource.data.createdAt == request.time
+          && resource.data.createdAt <= request.time - duration.value(24, 'h')
+          && getAfter(/databases/$(database)/documents/posts/$(postId))
+            .data.viewCount == post().get('viewCount', 0) + 1;
+        allow delete: if false;
       }
     }
 
