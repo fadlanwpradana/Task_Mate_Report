@@ -420,8 +420,10 @@ void main() {
 
     await tester.tap(find.text('Community').last);
     await tester.pumpAndSettle();
+    expect(services.community.postById(post.id)!.viewCount, 0);
     await tester.tap(find.text('Best SQL book?'));
     await tester.pumpAndSettle();
+    expect(services.community.postById(post.id)!.viewCount, 1);
 
     await tester.enterText(
       find.byType(TextField).last,

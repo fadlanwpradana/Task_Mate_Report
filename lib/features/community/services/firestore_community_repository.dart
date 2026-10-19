@@ -215,16 +215,39 @@ class FirestoreCommunityRepository extends CommunityRepository {
     final uid = _requireUid();
     final postRef = _db.collection('posts').doc(postId);
     final viewRef = postRef.collection('views').doc(uid);
-    await _db.runTransaction((transaction) async {
-      final view = await transaction.get(viewRef);
-      if (view.exists) return;
-      final post = await transaction.get(postRef);
-      if (!post.exists) return;
-      final viewCount = (post.data()?['viewCount'] as num?)?.toInt() ?? 0;
-      transaction
-        ..set(viewRef, {'createdAt': FieldValue.serverTimestamp()})
-        ..update(postRef, {'viewCount': viewCount + 1});
-    });
+    if (kDebugMode) debugPrint('community_view request_sent post=$postId');
+    try {
+      final recorded = await _db.runTransaction((transaction) async {
+        final view = await transaction.get(viewRef);
+        final now = DateTime.now();
+        if (view.exists) {
+          final viewedAt = view.data()?['createdAt'];
+          if (viewedAt is! Timestamp ||
+              now.difference(viewedAt.toDate()) < const Duration(hours: 24)) {
+            return false;
+          }
+        }
+        final post = await transaction.get(postRef);
+        if (!post.exists) return false;
+        final viewCount = (post.data()?['viewCount'] as num?)?.toInt() ?? 0;
+        transaction
+          ..set(viewRef, {'createdAt': FieldValue.serverTimestamp()})
+          ..update(postRef, {'viewCount': viewCount + 1});
+        return true;
+      });
+      if (kDebugMode) {
+        debugPrint(
+          recorded
+              ? 'community_view request_succeeded post=$postId'
+              : 'community_view skipped_recently_or_missing post=$postId',
+        );
+      }
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('community_view request_failed post=$postId error=$error');
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 
   @override
