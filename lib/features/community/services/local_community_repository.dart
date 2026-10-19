@@ -10,6 +10,11 @@ class LocalCommunityRepository extends CommunityRepository {
   LocalCommunityRepository(this._storage) {
     final savedCommunities = _storage.readList(_communitiesKey);
     final savedPosts = _storage.readList(_postsKey);
+    final savedViews = _storage.readList(_viewedPostsKey);
+    _viewedPostIds = {
+      for (final item in savedViews ?? const [])
+        if (item['id'] is String) item['id'] as String,
+    };
     if (savedCommunities == null || savedPosts == null) {
       _communities = _sampleCommunities();
       _posts = _samplePosts();
@@ -21,6 +26,7 @@ class LocalCommunityRepository extends CommunityRepository {
 
   static const _communitiesKey = 'communities';
   static const _postsKey = 'posts';
+  static const _viewedPostsKey = 'community_viewed_posts';
 
   /// Author id of posts written on this device (matches the demo chat).
   static const meId = 'me';
@@ -28,6 +34,7 @@ class LocalCommunityRepository extends CommunityRepository {
   final StorageService _storage;
   late List<CommunityModel> _communities;
   late List<PostModel> _posts;
+  late Set<String> _viewedPostIds;
 
   @override
   List<PostModel> get allPosts => [..._posts];
@@ -67,6 +74,17 @@ class LocalCommunityRepository extends CommunityRepository {
         likeCount: p.likeCount + (p.likedByMe ? -1 : 1),
       ),
     );
+    await _save();
+  }
+
+  @override
+  Future<void> recordView(String postId) async {
+    if (_viewedPostIds.contains(postId) ||
+        !_posts.any((post) => post.id == postId)) {
+      return;
+    }
+    _viewedPostIds.add(postId);
+    _updatePost(postId, (post) => post.copyWith(viewCount: post.viewCount + 1));
     await _save();
   }
 
@@ -121,6 +139,10 @@ class LocalCommunityRepository extends CommunityRepository {
       _communities.map((c) => c.toJson()).toList(),
     );
     await _storage.writeList(_postsKey, _posts.map((p) => p.toJson()).toList());
+    await _storage.writeList(
+      _viewedPostsKey,
+      _viewedPostIds.map((id) => {'id': id}).toList(),
+    );
   }
 
   static final _seedTime = DateTime.now();
