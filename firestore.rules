@@ -31,6 +31,16 @@ service cloud.firestore {
       return value is string && value.size() >= min && value.size() <= max;
     }
 
+    function validImageUrls(data) {
+      let urls = data.get('imageUrls', []);
+      return urls is list
+        && urls.size() <= 4
+        && (urls.size() < 1 || isText(urls[0], 1, 2048))
+        && (urls.size() < 2 || isText(urls[1], 1, 2048))
+        && (urls.size() < 3 || isText(urls[2], 1, 2048))
+        && (urls.size() < 4 || isText(urls[3], 1, 2048));
+    }
+
     // ---------------------------------------------------------------- users
 
     // Public profile: name only. Readable one at a time by signed-in users
@@ -175,6 +185,20 @@ service cloud.firestore {
             && get(viewPath).data.createdAt <= request.time - duration.value(24, 'h')));
     }
 
+    function isOwnPostEdit() {
+      return signedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.authorId == resource.data.authorId
+        && onlyChanges(['title', 'body', 'tags', 'imageUrls'])
+        && isText(request.resource.data.title, 1, 200)
+        && isText(request.resource.data.body, 1, 5000)
+        && request.resource.data.tags is list
+        && request.resource.data.tags.size() <= 10
+        && validImageUrls(request.resource.data)
+        && (request.resource.data.get('imageUrls', []).size() == 0
+          || request.resource.data.visibility == 'public');
+    }
+
     match /posts/{postId} {
       allow read: if canReadPost(resource.data);
       allow create: if signedIn()
@@ -184,6 +208,9 @@ service cloud.firestore {
         && isText(request.resource.data.body, 1, 5000)
         && request.resource.data.tags is list
         && request.resource.data.tags.size() <= 10
+        && validImageUrls(request.resource.data)
+        && (request.resource.data.get('imageUrls', []).size() == 0
+          || request.resource.data.visibility == 'public')
         && request.resource.data.likedBy == []
         && request.resource.data.likeCount == 0
         && request.resource.data.viewCount == 0
@@ -194,7 +221,8 @@ service cloud.firestore {
         && (request.resource.data.visibility == 'public'
           || isCommunityMember(request.resource.data.communityId));
       allow update: if canReadPost(resource.data) && (
-        isOwnLikeToggle()
+        isOwnPostEdit()
+        || isOwnLikeToggle()
         || isOwnViewIncrement(postId)
         || (onlyChanges(['commentCount'])
           && request.resource.data.commentCount == resource.data.commentCount + 1)

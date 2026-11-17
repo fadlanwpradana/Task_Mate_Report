@@ -11,6 +11,7 @@ import '../../auth/services/auth_repository.dart';
 import '../../calendar/screens/calendar_screen.dart';
 import '../../chat/screens/chat_list_screen.dart';
 import '../../community/services/firestore_community_repository.dart';
+import '../../community/services/local_community_repository.dart';
 import '../../tasks/services/task_store.dart';
 import '../../chat/services/firestore_chat_repository.dart';
 import '../../chat/services/local_chat_repository.dart';
@@ -106,9 +107,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final community = services.community;
     final user = widget.user;
     if (user == null || !services.online) {
+      services.currentUserId = services.online
+          ? null
+          : LocalCommunityRepository.meId;
       if (chat is LocalChatRepository) chat.myEmail = widget.localEmail ?? '';
       return;
     }
+    services.currentUserId = user.uid;
     if (chat is FirestoreChatRepository) {
       chat.signIn(
         uid: user.uid,

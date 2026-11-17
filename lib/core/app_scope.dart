@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'database/database_helper.dart';
 import '../features/chat/services/chat_repository.dart';
 import '../features/chat/services/firestore_chat_repository.dart';
 import '../features/chat/services/local_chat_repository.dart';
@@ -22,6 +23,7 @@ class AppServices {
     required this.chat,
     required this.locale,
     required this.onboarding,
+    this.currentUserId,
     this.online = false,
   });
 
@@ -29,9 +31,11 @@ class AppServices {
     StorageService storage, {
     ReminderScheduler? reminders,
     bool online = false,
+    bool useSqlite = true,
     Duration chatReplyDelay = const Duration(milliseconds: 2200),
   }) {
     final locale = LocaleController(storage);
+    final database = useSqlite ? DatabaseHelper() : null;
     return AppServices(
       // Online, tasks load from the signed-in user's account.
       tasks: online
@@ -40,8 +44,8 @@ class AppServices {
       profile: ProfileSettings(storage),
       // Real accounts use Firestore; offline mode uses the on-device demo.
       community: online
-          ? FirestoreCommunityRepository()
-          : LocalCommunityRepository(storage),
+          ? FirestoreCommunityRepository(cache: database)
+          : LocalCommunityRepository(storage, database: database),
       chat: online
           ? FirestoreChatRepository()
           : LocalChatRepository(
@@ -51,6 +55,7 @@ class AppServices {
             ),
       locale: locale,
       onboarding: OnboardingController(storage),
+      currentUserId: online ? null : LocalCommunityRepository.meId,
       online: online,
     );
   }
@@ -68,6 +73,7 @@ class AppServices {
   /// Display name of the signed-in user, used as the author of new posts and
   /// comments. Set by the main navigation screen.
   String currentUserName = '';
+  String? currentUserId;
 }
 
 /// Makes the app's repositories available to every screen, including pushed

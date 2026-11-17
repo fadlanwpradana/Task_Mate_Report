@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../core/database/database_helper.dart';
 import '../../../models/comment_model.dart';
 import '../../../models/community_model.dart';
 import '../../../models/post_model.dart';
 import 'community_repository.dart';
+import 'post_image_service.dart';
 
 typedef _Sub = StreamSubscription<QuerySnapshot<Map<String, dynamic>>>;
 
@@ -21,9 +23,10 @@ typedef _Sub = StreamSubscription<QuerySnapshot<Map<String, dynamic>>>;
 /// * `users/{uid}/joined/{communityId}` and `users/{uid}/bookmarks/{postId}`:
 ///   the user's own memberships and saved posts.
 class FirestoreCommunityRepository extends CommunityRepository {
-  FirestoreCommunityRepository({this._firestore});
+  FirestoreCommunityRepository({this._firestore, this.cache});
 
   final FirebaseFirestore? _firestore;
+  final DatabaseHelper? cache;
   FirebaseFirestore get _db => _firestore ?? FirebaseFirestore.instance;
 
   static const _feedLimit = 100;
@@ -38,6 +41,8 @@ class FirestoreCommunityRepository extends CommunityRepository {
   final _publicPosts = <String, Map<String, dynamic>>{};
   final _privatePosts = <String, Map<String, Map<String, dynamic>>>{};
   final _comments = <String, List<CommentModel>>{};
+  List<PostModel> _cachedPublicPosts = [];
+  var _hasReceivedPublicFeed = false;
   var _joined = <String>{};
   var _bookmarks = <String>{};
 
@@ -46,6 +51,7 @@ class FirestoreCommunityRepository extends CommunityRepository {
     if (_uid == uid) return;
     signOut();
     _uid = uid;
+    unawaited(_loadCachedPosts(uid));
     _listen(_db.collection('communities').limit(500), (snapshot) {
       _replace(_communities, snapshot);
       _syncPrivateFeeds();
@@ -64,7 +70,12 @@ class FirestoreCommunityRepository extends CommunityRepository {
           .where('visibility', isEqualTo: 'public')
           .orderBy('createdAt', descending: true)
           .limit(_feedLimit),
-      (snapshot) => _replace(_publicPosts, snapshot),
+      (snapshot) {
+        _replace(_publicPosts, snapshot);
+        _hasReceivedPublicFeed = true;
+        _cachedPublicPosts = [];
+        unawaited(_savePublicPostCache(uid));
+      },
     );
   }
 
@@ -84,6 +95,8 @@ class FirestoreCommunityRepository extends CommunityRepository {
     _publicPosts.clear();
     _privatePosts.clear();
     _comments.clear();
+    _cachedPublicPosts = [];
+    _hasReceivedPublicFeed = false;
     _joined = {};
     _bookmarks = {};
     _uid = null;
@@ -150,8 +163,14 @@ class FirestoreCommunityRepository extends CommunityRepository {
       ..._publicPosts,
       for (final feed in _privatePosts.values) ...feed,
     };
-    return [
+    final loaded = [
       for (final entry in merged.entries) _toPost(entry.key, entry.value),
+    ];
+    final loadedIds = loaded.map((post) => post.id).toSet();
+    return [
+      ...loaded,
+      for (final post in _cachedPublicPosts)
+        if (!loadedIds.contains(post.id)) post,
     ];
   }
 
@@ -169,12 +188,21 @@ class FirestoreCommunityRepository extends CommunityRepository {
       (_communities[communityId]?['postCount'] as num?)?.toInt() ?? 0;
 
   @override
-  Future<void> addPost(PostModel post) async {
+  String newPostId() => _db.collection('posts').doc().id;
+
+  @override
+  Future<void> addPost(PostModel post, {String? postId}) async {
     final uid = _requireUid();
-    final community = post.communityId == null
+    final communitySnapshot = post.communityId == null
         ? null
-        : _communities[post.communityId];
-    final ref = _db.collection('posts').doc();
+        : await _db.collection('communities').doc(post.communityId).get();
+    if (communitySnapshot != null && !communitySnapshot.exists) {
+      throw StateError('Community no longer exists.');
+    }
+    final community = communitySnapshot?.data();
+    PostImageService.ensureCapacity(0, post.imageUrls.length);
+    final posts = _db.collection('posts');
+    final ref = postId == null ? posts.doc() : posts.doc(postId);
     final batch = _db.batch()
       ..set(ref, {
         'authorId': uid,
@@ -186,6 +214,7 @@ class FirestoreCommunityRepository extends CommunityRepository {
         'title': post.title,
         'body': post.body,
         'tags': post.tags,
+        'imageUrls': post.imageUrls,
         'likedBy': <String>[],
         'likeCount': 0,
         'viewCount': 0,
@@ -198,6 +227,58 @@ class FirestoreCommunityRepository extends CommunityRepository {
       });
     }
     await batch.commit();
+  }
+
+  @override
+  Future<void> updatePost(PostModel post) async {
+    final uid = _requireUid();
+    PostImageService.ensureCapacity(0, post.imageUrls.length);
+    final reference = _db.collection('posts').doc(post.id);
+    final current = await reference.get();
+    if (!current.exists) throw StateError('Post no longer exists.');
+    if (current.data()?['authorId'] != uid) {
+      throw StateError('You can only edit your own posts.');
+    }
+    await reference.update({
+      'title': post.title,
+      'body': post.body,
+      'tags': post.tags,
+      'imageUrls': post.imageUrls,
+    });
+  }
+
+  @override
+  Future<void> deletePost(String postId) async {
+    final uid = _requireUid();
+    final reference = _db.collection('posts').doc(postId);
+    final current = await reference.get();
+    if (!current.exists) throw StateError('Post no longer exists.');
+    if (current.data()?['authorId'] != uid) {
+      throw StateError('You can only delete your own posts.');
+    }
+    await reference.delete();
+    _publicPosts.remove(postId);
+    for (final feed in _privatePosts.values) {
+      feed.remove(postId);
+    }
+    _cachedPublicPosts.removeWhere((post) => post.id == postId);
+    _comments.remove(postId);
+    _commentSubs.remove(postId)?.cancel();
+    notifyListeners();
+    try {
+      await cache?.deleteCachedPost(uid, postId);
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'community',
+          context: ErrorDescription(
+            'while removing a deleted post from the local cache',
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -381,6 +462,48 @@ class FirestoreCommunityRepository extends CommunityRepository {
     return uid;
   }
 
+  Future<void> _loadCachedPosts(String uid) async {
+    final cache = this.cache;
+    if (cache == null) return;
+    try {
+      final posts = await cache.readCachedPosts(uid);
+      if (_uid != uid || _hasReceivedPublicFeed) return;
+      _cachedPublicPosts = posts;
+      notifyListeners();
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'community',
+          context: ErrorDescription('while reading the local post cache'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _savePublicPostCache(String uid) async {
+    final cache = this.cache;
+    if (cache == null) return;
+    try {
+      final posts = [
+        for (final entry in _publicPosts.entries)
+          _toPost(entry.key, entry.value),
+      ];
+      await cache.replaceCachedPosts(uid, posts);
+      if (_uid == uid) _cachedPublicPosts = posts;
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'community',
+          context: ErrorDescription('while updating the local post cache'),
+        ),
+      );
+    }
+  }
+
   bool _likedByMe(Map<String, dynamic> data) =>
       (data['likedBy'] as List<dynamic>? ?? const []).contains(_uid);
 
@@ -395,6 +518,8 @@ class FirestoreCommunityRepository extends CommunityRepository {
       title: data['title'] as String? ?? '',
       body: data['body'] as String? ?? '',
       tags: (data['tags'] as List<dynamic>? ?? const []).cast<String>(),
+      imageUrls: (data['imageUrls'] as List<dynamic>? ?? const [])
+          .cast<String>(),
       likeCount: (data['likeCount'] as num?)?.toInt() ?? 0,
       viewCount: (data['viewCount'] as num?)?.toInt() ?? 0,
       likedByMe: _likedByMe(data),

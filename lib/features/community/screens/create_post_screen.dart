@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/app_scope.dart';
-import '../../../core/services/storage_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format_utils.dart';
 import '../../../core/utils/validation_utils.dart';
@@ -9,6 +8,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/post_model.dart';
 import '../../../shared/widgets/common_widgets.dart';
 import '../../../shared/widgets/primary_button.dart';
+import '../services/cloudinary_service.dart';
+import '../services/post_image_service.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({this.initialCommunityId, super.key});
@@ -24,8 +25,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
   final _tagController = TextEditingController();
+  final _imageService = PostImageService();
   PostType _type = PostType.question;
   final List<String> _tags = [];
+  final List<SelectedPostImage> _images = [];
+  var _publishing = false;
+  double _uploadProgress = 0;
   late String? _communityId = widget.initialCommunityId;
 
   @override
@@ -48,27 +53,97 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
   }
 
+  Future<void> _selectImages({required bool useCamera}) async {
+    final services = AppScope.of(context);
+    if (services.community.communityById(_communityId)?.isPrivate == true) {
+      _showError(
+        AppLocalizations.of(context).privateCommunityPhotosUnavailable,
+      );
+      return;
+    }
+    if (!services.online || services.currentUserId == null) {
+      _showError(AppLocalizations.of(context).photoUploadRequiresSignIn);
+      return;
+    }
+    try {
+      if (useCamera) {
+        final image = await _imageService.captureFromCamera(
+          currentCount: _images.length,
+        );
+        if (image != null && mounted) {
+          setState(() => _images.add(image));
+        }
+      } else {
+        final images = await _imageService.pickFromGallery(
+          currentCount: _images.length,
+        );
+        if (mounted && images.isNotEmpty) {
+          setState(() => _images.addAll(images));
+        }
+      }
+    } catch (error) {
+      _showError(error.toString());
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _publish() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_publishing || !_formKey.currentState!.validate()) return;
     _addTag();
     final l10n = AppLocalizations.of(context);
+    setState(() {
+      _publishing = true;
+      _uploadProgress = 0;
+    });
     final services = AppScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    await services.community.addPost(
-      PostModel(
-        id: generateId(),
-        authorName: services.currentUserName,
-        communityId: _communityId,
-        type: _type,
-        title: _titleController.text.trim(),
-        body: _bodyController.text.trim(),
-        tags: [..._tags],
-        createdAt: DateTime.now(),
-      ),
-    );
-    if (!mounted) return;
-    Navigator.of(context).pop();
-    messenger.showSnackBar(SnackBar(content: Text(l10n.postPublished)));
+    final postId = services.community.newPostId();
+    var uploadedUrls = <String>[];
+    try {
+      if (_images.isNotEmpty) {
+        if (services.community.communityById(_communityId)?.isPrivate == true) {
+          throw StateError(l10n.privateCommunityPhotosUnavailable);
+        }
+        final userId = services.currentUserId;
+        if (userId == null || !services.online) {
+          throw StateError(
+            'Photo uploads require an authenticated Firebase account.',
+          );
+        }
+        uploadedUrls = await CloudinaryService().uploadImages(
+          images: _images,
+          onProgress: (progress) {
+            if (mounted) setState(() => _uploadProgress = progress);
+          },
+        );
+      }
+      await services.community.addPost(
+        PostModel(
+          id: postId,
+          authorName: services.currentUserName,
+          communityId: _communityId,
+          type: _type,
+          title: _titleController.text.trim(),
+          body: _bodyController.text.trim(),
+          tags: [..._tags],
+          imageUrls: uploadedUrls,
+          createdAt: DateTime.now(),
+        ),
+        postId: postId,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      messenger.showSnackBar(SnackBar(content: Text(l10n.postPublished)));
+    } catch (error) {
+      final message = l10n.postPublishFailed(error.toString());
+      if (mounted) _showError(message);
+    } finally {
+      if (mounted) setState(() => _publishing = false);
+    }
   }
 
   @override
@@ -116,6 +191,61 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 label: l10n.descriptionLabel,
               ),
             ),
+            FieldLabel(l10n.postPhotos),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (var index = 0; index < _images.length; index++)
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.memory(
+                          _images[index].bytes,
+                          width: 84,
+                          height: 84,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: IconButton.filledTonal(
+                          tooltip: l10n.removePhoto,
+                          onPressed: _publishing
+                              ? null
+                              : () => setState(() => _images.removeAt(index)),
+                          icon: const Icon(Icons.close_rounded, size: 16),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
+                  ),
+                if (_images.length < PostImageService.maxImages)
+                  TextButton.icon(
+                    onPressed: _publishing
+                        ? null
+                        : () => _selectImages(useCamera: false),
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: Text(l10n.gallery),
+                  ),
+                if (_images.length < PostImageService.maxImages)
+                  TextButton.icon(
+                    onPressed: _publishing
+                        ? null
+                        : () => _selectImages(useCamera: true),
+                    icon: const Icon(Icons.camera_alt_outlined),
+                    label: Text(l10n.camera),
+                  ),
+              ],
+            ),
+            if (_publishing && _images.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: _uploadProgress),
+              const SizedBox(height: 8),
+              Text(l10n.uploadingPhotos((_uploadProgress * 100).round())),
+            ],
             FieldLabel(l10n.tags),
             if (_tags.isNotEmpty) ...[
               Wrap(
@@ -165,9 +295,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
             const SizedBox(height: 28),
             PrimaryButton(
-              label: l10n.publish,
+              label: _publishing ? l10n.publishingPost : l10n.publish,
               icon: Icons.send_rounded,
-              onPressed: _publish,
+              onPressed: _publishing ? null : _publish,
             ),
           ],
         ),

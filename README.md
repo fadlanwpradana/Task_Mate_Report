@@ -70,6 +70,18 @@ After changing security rules or indexes, deploy them:
 firebase deploy --only firestore
 ```
 
+Community photo uploads use the unsigned Cloudinary preset `taskmate_upload`
+in folder `taskmate`. Verify the preset in Cloudinary before testing uploads.
+The Flutter client does not include an API secret or delete Cloudinary assets;
+private-community photo uploads remain disabled until a safe media policy is
+verified.
+
+## Technology and project status
+
+- [Technology audit](docs/TECHNOLOGY_AUDIT.md)
+- [Weekly progress and demo plan](docs/WEEKLY_PROGRESS.md)
+- [Testing report](docs/TESTING_REPORT.md)
+
 ## Tests
 
 ```sh

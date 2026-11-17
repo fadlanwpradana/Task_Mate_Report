@@ -7,6 +7,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/post_model.dart';
 import '../../../shared/widgets/common_widgets.dart';
 import '../screens/post_detail_screen.dart';
+import 'post_image_gallery.dart';
+import 'post_options_menu.dart';
 
 class PostCard extends StatelessWidget {
   const PostCard({required this.post, super.key});
@@ -48,6 +50,8 @@ class PostCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(height: 1.4),
               ),
+              if (post.imageUrls.isNotEmpty)
+                PostImageGallery(imageUrls: post.imageUrls),
               if (post.tags.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 TagWrap(tags: post.tags),
@@ -63,9 +67,14 @@ class PostCard extends StatelessWidget {
 
 /// Author avatar, name, community/time, and post type badge.
 class PostHeader extends StatelessWidget {
-  const PostHeader({required this.post, super.key});
+  const PostHeader({
+    required this.post,
+    this.popAfterDelete = false,
+    super.key,
+  });
 
   final PostModel post;
+  final bool popAfterDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +108,7 @@ class PostHeader extends StatelessWidget {
           label: FormatUtils.postType(l10n, post.type),
           color: FormatUtils.postTypeColor(post.type),
         ),
+        PostOptionsMenu(post: post, popAfterDelete: popAfterDelete),
       ],
     );
   }

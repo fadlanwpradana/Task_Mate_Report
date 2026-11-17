@@ -29,6 +29,7 @@ Future<AppServices> _servicesWith({required bool onboardingSeen}) async {
   SharedPreferences.setMockInitialValues({});
   final services = AppServices.fromStorage(
     StorageService(await SharedPreferences.getInstance()),
+    useSqlite: false,
   );
   if (onboardingSeen) await services.onboarding.complete();
   return services;
