@@ -32,6 +32,10 @@ class StorageService {
   Future<void> writeString(String key, String value) async {
     await _prefs?.setString(key, value);
   }
+
+  Future<void> remove(String key) async {
+    await _prefs?.remove(key);
+  }
 }
 
 int _idCounter = 0;

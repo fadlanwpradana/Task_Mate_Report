@@ -686,6 +686,115 @@ class AppLocalizationsId extends AppLocalizations {
   String get postPublished => 'Postingan dibagikan';
 
   @override
+  String get postPhotos => 'Foto (maksimal 4)';
+
+  @override
+  String get publishingPost => 'Menerbitkan…';
+
+  @override
+  String get savingPost => 'Menyimpan…';
+
+  @override
+  String get gallery => 'Galeri';
+
+  @override
+  String get camera => 'Kamera';
+
+  @override
+  String get removePhoto => 'Hapus foto';
+
+  @override
+  String uploadingPhotos(int percent) {
+    return 'Mengunggah foto: $percent%';
+  }
+
+  @override
+  String get photoUploadRequiresSignIn =>
+      'Masuk ke Firebase untuk mengunggah foto postingan.';
+
+  @override
+  String get privateCommunityPhotosUnavailable =>
+      'Postingan foto belum tersedia di komunitas privat.';
+
+  @override
+  String get postNotAvailable => 'Postingan ini sudah tidak tersedia.';
+
+  @override
+  String get editOwnPostOnly => 'Kamu hanya dapat mengedit postingan milikmu.';
+
+  @override
+  String get postOptions => 'Opsi postingan';
+
+  @override
+  String get deletePostQuestion => 'Hapus postingan?';
+
+  @override
+  String get deletePostMessage =>
+      'Postingan ini akan dihapus dari umpan komunitas.';
+
+  @override
+  String get postDeletedTitle => 'Postingan dihapus';
+
+  @override
+  String get postDeletedMessage => 'Postingan berhasil dihapus.';
+
+  @override
+  String get ok => 'Oke';
+
+  @override
+  String get retry => 'Coba lagi';
+
+  @override
+  String get postDeleted => 'Postingan dihapus.';
+
+  @override
+  String postDeleteFailed(Object error) {
+    return 'Postingan tidak dapat dihapus: $error';
+  }
+
+  @override
+  String postDeletedPhotosCleanupFailed(Object error) {
+    return 'Postingan dihapus, tetapi beberapa foto gagal dihapus: $error';
+  }
+
+  @override
+  String postPublishFailed(Object error) {
+    return 'Postingan tidak dapat diterbitkan: $error';
+  }
+
+  @override
+  String postPublishCleanupFailed(Object error) {
+    return 'Foto yang diunggah gagal dibersihkan: $error';
+  }
+
+  @override
+  String get editPost => 'Edit postingan';
+
+  @override
+  String get savePostChanges => 'Simpan perubahan';
+
+  @override
+  String get postUpdated => 'Postingan diperbarui.';
+
+  @override
+  String postSaveFailed(Object error) {
+    return 'Postingan tidak dapat disimpan: $error';
+  }
+
+  @override
+  String postSavedPhotosCleanupFailed(Object error) {
+    return 'Postingan tersimpan, tetapi beberapa foto gagal dihapus: $error';
+  }
+
+  @override
+  String newPhotosCleanupFailed(Object error) {
+    return 'Foto baru gagal dibersihkan: $error';
+  }
+
+  @override
+  String get requiredField => 'Bagian ini wajib diisi.';
+
+  @override
   String get post => 'Postingan';
 
   @override

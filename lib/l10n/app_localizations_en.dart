@@ -714,6 +714,115 @@ class AppLocalizationsEn extends AppLocalizations {
   String get postPublished => 'Post published';
 
   @override
+  String get postPhotos => 'Photos (up to 4)';
+
+  @override
+  String get publishingPost => 'Publishing…';
+
+  @override
+  String get savingPost => 'Saving…';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get camera => 'Camera';
+
+  @override
+  String get removePhoto => 'Remove photo';
+
+  @override
+  String uploadingPhotos(int percent) {
+    return 'Uploading photos: $percent%';
+  }
+
+  @override
+  String get photoUploadRequiresSignIn =>
+      'Sign in to Firebase to upload post photos.';
+
+  @override
+  String get privateCommunityPhotosUnavailable =>
+      'Photo posts are not available in private communities yet.';
+
+  @override
+  String get postNotAvailable => 'This post is no longer available.';
+
+  @override
+  String get editOwnPostOnly => 'You can only edit your own posts.';
+
+  @override
+  String get postOptions => 'Post options';
+
+  @override
+  String get deletePostQuestion => 'Delete post?';
+
+  @override
+  String get deletePostMessage =>
+      'This post will be removed from the community feed.';
+
+  @override
+  String get postDeletedTitle => 'Post deleted';
+
+  @override
+  String get postDeletedMessage => 'Post has been deleted successfully.';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get postDeleted => 'Post deleted.';
+
+  @override
+  String postDeleteFailed(Object error) {
+    return 'Could not delete post: $error';
+  }
+
+  @override
+  String postDeletedPhotosCleanupFailed(Object error) {
+    return 'Post deleted, but some stored photos could not be removed: $error';
+  }
+
+  @override
+  String postPublishFailed(Object error) {
+    return 'Could not publish post: $error';
+  }
+
+  @override
+  String postPublishCleanupFailed(Object error) {
+    return 'Uploaded photos could not be cleaned up: $error';
+  }
+
+  @override
+  String get editPost => 'Edit post';
+
+  @override
+  String get savePostChanges => 'Save changes';
+
+  @override
+  String get postUpdated => 'Post updated.';
+
+  @override
+  String postSaveFailed(Object error) {
+    return 'Could not save post: $error';
+  }
+
+  @override
+  String postSavedPhotosCleanupFailed(Object error) {
+    return 'Post saved, but some removed photos could not be deleted: $error';
+  }
+
+  @override
+  String newPhotosCleanupFailed(Object error) {
+    return 'New photos could not be cleaned up: $error';
+  }
+
+  @override
+  String get requiredField => 'This field is required.';
+
+  @override
   String get post => 'Post';
 
   @override

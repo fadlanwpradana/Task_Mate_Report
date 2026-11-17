@@ -14,6 +14,7 @@ class PostModel {
     this.authorSubtitle = '',
     this.communityId,
     this.tags = const [],
+    this.imageUrls = const [],
     this.likeCount = 0,
     this.viewCount = 0,
     this.likedByMe = false,
@@ -33,6 +34,7 @@ class PostModel {
   final String title;
   final String body;
   final List<String> tags;
+  final List<String> imageUrls;
   final int likeCount;
   final int viewCount;
   final bool likedByMe;
@@ -54,6 +56,11 @@ class PostModel {
     bool? likedByMe,
     bool? bookmarked,
     List<CommentModel>? comments,
+    int? commentCount,
+    String? title,
+    String? body,
+    List<String>? tags,
+    List<String>? imageUrls,
   }) {
     return PostModel(
       id: id,
@@ -62,16 +69,19 @@ class PostModel {
       authorSubtitle: authorSubtitle,
       communityId: communityId,
       type: type,
-      title: title,
-      body: body,
-      tags: tags,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      tags: tags ?? this.tags,
+      imageUrls: imageUrls ?? this.imageUrls,
       createdAt: createdAt,
       likeCount: likeCount ?? this.likeCount,
       viewCount: viewCount ?? this.viewCount,
       likedByMe: likedByMe ?? this.likedByMe,
       bookmarked: bookmarked ?? this.bookmarked,
       comments: comments ?? this.comments,
-      commentCount: commentCount,
+      commentCount:
+          commentCount ??
+          (comments == null ? this.commentCount : comments.length),
     );
   }
 
@@ -85,11 +95,13 @@ class PostModel {
     'title': title,
     'body': body,
     'tags': tags,
+    'imageUrls': imageUrls,
     'likeCount': likeCount,
     'viewCount': viewCount,
     'likedByMe': likedByMe,
     'bookmarked': bookmarked,
     'comments': comments.map((c) => c.toJson()).toList(),
+    'commentCount': totalComments,
     'createdAt': createdAt.toIso8601String(),
   };
 
@@ -104,6 +116,7 @@ class PostModel {
       title: json['title'] as String,
       body: json['body'] as String,
       tags: (json['tags'] as List<dynamic>? ?? []).cast<String>(),
+      imageUrls: (json['imageUrls'] as List<dynamic>? ?? []).cast<String>(),
       likeCount: json['likeCount'] as int? ?? 0,
       viewCount: json['viewCount'] as int? ?? 0,
       likedByMe: json['likedByMe'] as bool? ?? false,
@@ -111,6 +124,7 @@ class PostModel {
       comments: (json['comments'] as List<dynamic>? ?? [])
           .map((c) => CommentModel.fromJson(c as Map<String, dynamic>))
           .toList(),
+      commentCount: json['commentCount'] as int?,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }

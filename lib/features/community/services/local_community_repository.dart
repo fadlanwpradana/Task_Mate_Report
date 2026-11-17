@@ -1,13 +1,17 @@
+import 'package:flutter/foundation.dart';
+
+import '../../../core/database/database_helper.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../models/comment_model.dart';
 import '../../../models/community_model.dart';
 import '../../../models/post_model.dart';
 import 'community_repository.dart';
+import 'post_image_service.dart';
 
 /// Offline demo community stored on the device, with sample posts written
 /// by the demo chat users.
 class LocalCommunityRepository extends CommunityRepository {
-  LocalCommunityRepository(this._storage) {
+  LocalCommunityRepository(this._storage, {this.database}) {
     final savedCommunities = _storage.readList(_communitiesKey);
     final savedPosts = _storage.readList(_postsKey);
     final savedViews = _storage.readList(_viewedPostsKey);
@@ -16,13 +20,13 @@ class LocalCommunityRepository extends CommunityRepository {
         if (item['id'] is String)
           item['id'] as String: _readViewTime(item['viewedAt']),
     };
-    if (savedCommunities == null || savedPosts == null) {
-      _communities = _sampleCommunities();
-      _posts = _samplePosts();
-    } else {
-      _communities = savedCommunities.map(CommunityModel.fromJson).toList();
-      _posts = savedPosts.map(PostModel.fromJson).toList();
-    }
+    _communities = savedCommunities == null
+        ? _sampleCommunities()
+        : savedCommunities.map(CommunityModel.fromJson).toList();
+    _posts = savedPosts == null
+        ? _samplePosts()
+        : savedPosts.map(PostModel.fromJson).toList();
+    _postsReady = database == null ? Future<void>.value() : _restorePosts();
   }
 
   static const _communitiesKey = 'communities';
@@ -33,9 +37,12 @@ class LocalCommunityRepository extends CommunityRepository {
   static const meId = 'me';
 
   final StorageService _storage;
+  final DatabaseHelper? database;
+  late final Future<void> _postsReady;
   late List<CommunityModel> _communities;
   late List<PostModel> _posts;
   late Map<String, DateTime> _viewedPostAt;
+  var _postsMutated = false;
 
   @override
   List<PostModel> get allPosts => [..._posts];
@@ -48,10 +55,15 @@ class LocalCommunityRepository extends CommunityRepository {
       _posts.where((p) => p.communityId == communityId).length;
 
   @override
-  Future<void> addPost(PostModel post) async {
+  String newPostId() => generateId();
+
+  @override
+  Future<void> addPost(PostModel post, {String? postId}) async {
+    await _postsReady;
+    PostImageService.ensureCapacity(0, post.imageUrls.length);
     _posts.add(
       PostModel(
-        id: post.id,
+        id: postId ?? post.id,
         authorId: post.authorId ?? meId,
         authorName: post.authorName,
         authorSubtitle: post.authorSubtitle,
@@ -60,6 +72,7 @@ class LocalCommunityRepository extends CommunityRepository {
         title: post.title,
         body: post.body,
         tags: post.tags,
+        imageUrls: post.imageUrls,
         createdAt: post.createdAt,
       ),
     );
@@ -67,7 +80,39 @@ class LocalCommunityRepository extends CommunityRepository {
   }
 
   @override
+  Future<void> updatePost(PostModel post) async {
+    await _postsReady;
+    PostImageService.ensureCapacity(0, post.imageUrls.length);
+    final index = _posts.indexWhere((item) => item.id == post.id);
+    if (index == -1) throw StateError('Post no longer exists.');
+    if (_posts[index].authorId != meId) {
+      throw StateError('You can only edit your own posts.');
+    }
+    _posts[index] = _posts[index].copyWith(
+      title: post.title,
+      body: post.body,
+      tags: post.tags,
+      imageUrls: post.imageUrls,
+    );
+    await _save();
+  }
+
+  @override
+  Future<void> deletePost(String postId) async {
+    await _postsReady;
+    final index = _posts.indexWhere((item) => item.id == postId);
+    if (index == -1) throw StateError('Post no longer exists.');
+    if (_posts[index].authorId != meId) {
+      throw StateError('You can only delete your own posts.');
+    }
+    _posts.removeAt(index);
+    _viewedPostAt.remove(postId);
+    await _save();
+  }
+
+  @override
   Future<void> toggleLike(String postId) async {
+    await _postsReady;
     _updatePost(
       postId,
       (p) => p.copyWith(
@@ -80,6 +125,7 @@ class LocalCommunityRepository extends CommunityRepository {
 
   @override
   Future<void> recordView(String postId) async {
+    await _postsReady;
     final now = DateTime.now();
     final previousView = _viewedPostAt[postId];
     if ((previousView != null &&
@@ -94,18 +140,21 @@ class LocalCommunityRepository extends CommunityRepository {
 
   @override
   Future<void> toggleBookmark(String postId) async {
+    await _postsReady;
     _updatePost(postId, (p) => p.copyWith(bookmarked: !p.bookmarked));
     await _save();
   }
 
   @override
   Future<void> addComment(String postId, CommentModel comment) async {
+    await _postsReady;
     _updatePost(postId, (p) => p.copyWith(comments: [...p.comments, comment]));
     await _save();
   }
 
   @override
   Future<void> toggleCommentLike(String postId, String commentId) async {
+    await _postsReady;
     _updatePost(
       postId,
       (p) => p.copyWith(
@@ -119,12 +168,14 @@ class LocalCommunityRepository extends CommunityRepository {
 
   @override
   Future<void> addCommunity(CommunityModel community) async {
+    await _postsReady;
     _communities.add(community);
     await _save();
   }
 
   @override
   Future<void> toggleJoin(String communityId) async {
+    await _postsReady;
     final index = _communities.indexWhere((c) => c.id == communityId);
     if (index == -1) return;
     _communities[index] = _communities[index].toggleJoin();
@@ -137,12 +188,21 @@ class LocalCommunityRepository extends CommunityRepository {
   }
 
   Future<void> _save() async {
+    _postsMutated = true;
     notifyListeners();
     await _storage.writeList(
       _communitiesKey,
       _communities.map((c) => c.toJson()).toList(),
     );
-    await _storage.writeList(_postsKey, _posts.map((p) => p.toJson()).toList());
+    final postDatabase = database;
+    if (postDatabase == null) {
+      await _storage.writeList(
+        _postsKey,
+        _posts.map((post) => post.toJson()).toList(),
+      );
+    } else {
+      await postDatabase.replaceCachedPosts(meId, _posts);
+    }
     await _storage.writeList(
       _viewedPostsKey,
       _viewedPostAt.entries
@@ -154,6 +214,30 @@ class LocalCommunityRepository extends CommunityRepository {
           )
           .toList(),
     );
+  }
+
+  Future<void> _restorePosts() async {
+    try {
+      final postDatabase = database!;
+      final cached = await postDatabase.readCachedPosts(meId);
+      if (_postsMutated) return;
+      if (cached.isNotEmpty) {
+        _posts = cached;
+      } else {
+        await postDatabase.replaceCachedPosts(meId, _posts);
+      }
+      await _storage.remove(_postsKey);
+      if (!_postsMutated) notifyListeners();
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'community',
+          context: ErrorDescription('while restoring local community posts'),
+        ),
+      );
+    }
   }
 
   static DateTime _readViewTime(Object? value) {

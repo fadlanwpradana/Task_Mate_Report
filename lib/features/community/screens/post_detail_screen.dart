@@ -12,6 +12,7 @@ import '../../../shared/widgets/common_widgets.dart';
 import '../../chat/screens/chat_room_screen.dart';
 import '../services/community_repository.dart';
 import '../widgets/post_card.dart';
+import '../widgets/post_image_gallery.dart';
 
 class PostDetailScreen extends StatefulWidget {
   const PostDetailScreen({required this.postId, super.key});
@@ -121,11 +122,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
             children: [
-              PostHeader(post: post),
+              PostHeader(post: post, popAfterDelete: true),
               const SizedBox(height: 16),
               Text(post.title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 10),
               Text(post.body, style: const TextStyle(height: 1.5)),
+              if (post.imageUrls.isNotEmpty)
+                PostImageGallery(imageUrls: post.imageUrls),
               if (post.tags.isNotEmpty) ...[
                 const SizedBox(height: 14),
                 TagWrap(tags: post.tags),

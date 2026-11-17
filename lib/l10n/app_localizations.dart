@@ -1334,6 +1334,186 @@ abstract class AppLocalizations {
   /// **'Post published'**
   String get postPublished;
 
+  /// No description provided for @postPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos (up to 4)'**
+  String get postPhotos;
+
+  /// No description provided for @publishingPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishing…'**
+  String get publishingPost;
+
+  /// No description provided for @savingPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get savingPost;
+
+  /// No description provided for @gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// No description provided for @camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get camera;
+
+  /// No description provided for @removePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove photo'**
+  String get removePhoto;
+
+  /// No description provided for @uploadingPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading photos: {percent}%'**
+  String uploadingPhotos(int percent);
+
+  /// No description provided for @photoUploadRequiresSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to Firebase to upload post photos.'**
+  String get photoUploadRequiresSignIn;
+
+  /// No description provided for @privateCommunityPhotosUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo posts are not available in private communities yet.'**
+  String get privateCommunityPhotosUnavailable;
+
+  /// No description provided for @postNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This post is no longer available.'**
+  String get postNotAvailable;
+
+  /// No description provided for @editOwnPostOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'You can only edit your own posts.'**
+  String get editOwnPostOnly;
+
+  /// No description provided for @postOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Post options'**
+  String get postOptions;
+
+  /// No description provided for @deletePostQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete post?'**
+  String get deletePostQuestion;
+
+  /// No description provided for @deletePostMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This post will be removed from the community feed.'**
+  String get deletePostMessage;
+
+  /// No description provided for @postDeletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Post deleted'**
+  String get postDeletedTitle;
+
+  /// No description provided for @postDeletedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Post has been deleted successfully.'**
+  String get postDeletedMessage;
+
+  /// No description provided for @ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @postDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Post deleted.'**
+  String get postDeleted;
+
+  /// No description provided for @postDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete post: {error}'**
+  String postDeleteFailed(Object error);
+
+  /// No description provided for @postDeletedPhotosCleanupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Post deleted, but some stored photos could not be removed: {error}'**
+  String postDeletedPhotosCleanupFailed(Object error);
+
+  /// No description provided for @postPublishFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not publish post: {error}'**
+  String postPublishFailed(Object error);
+
+  /// No description provided for @postPublishCleanupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded photos could not be cleaned up: {error}'**
+  String postPublishCleanupFailed(Object error);
+
+  /// No description provided for @editPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit post'**
+  String get editPost;
+
+  /// No description provided for @savePostChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get savePostChanges;
+
+  /// No description provided for @postUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Post updated.'**
+  String get postUpdated;
+
+  /// No description provided for @postSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save post: {error}'**
+  String postSaveFailed(Object error);
+
+  /// No description provided for @postSavedPhotosCleanupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Post saved, but some removed photos could not be deleted: {error}'**
+  String postSavedPhotosCleanupFailed(Object error);
+
+  /// No description provided for @newPhotosCleanupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'New photos could not be cleaned up: {error}'**
+  String newPhotosCleanupFailed(Object error);
+
+  /// No description provided for @requiredField.
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required.'**
+  String get requiredField;
+
   /// No description provided for @post.
   ///
   /// In en, this message translates to:

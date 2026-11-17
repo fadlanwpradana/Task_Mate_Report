@@ -27,7 +27,8 @@ Future<AppServices> _signIn(
   tester.view.devicePixelRatio = 2.75;
   addTearDown(tester.view.reset);
 
-  final appServices = services ?? AppServices.fromStorage(StorageService());
+  final appServices =
+      services ?? AppServices.fromStorage(StorageService(), useSqlite: false);
   // Not a first launch: go straight to Login.
   await appServices.onboarding.complete();
   await tester.pumpWidget(
@@ -48,7 +49,11 @@ void main() {
     final reminders = _RecordingReminders();
     final services = await _signIn(
       tester,
-      services: AppServices.fromStorage(StorageService(), reminders: reminders),
+      services: AppServices.fromStorage(
+        StorageService(),
+        reminders: reminders,
+        useSqlite: false,
+      ),
     );
     final initialCount = services.tasks.tasks.length;
 
@@ -97,7 +102,10 @@ void main() {
   testWidgets('Task screens fit a small phone in Indonesian', (tester) async {
     SharedPreferences.setMockInitialValues({'locale': 'id'});
     final prefs = await SharedPreferences.getInstance();
-    final services = AppServices.fromStorage(StorageService(prefs));
+    final services = AppServices.fromStorage(
+      StorageService(prefs),
+      useSqlite: false,
+    );
     tester.view.physicalSize = const Size(720, 1280);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
@@ -139,7 +147,10 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final services = await _signIn(
       tester,
-      services: AppServices.fromStorage(StorageService(prefs)),
+      services: AppServices.fromStorage(
+        StorageService(prefs),
+        useSqlite: false,
+      ),
     );
 
     await tester.tap(find.text('Profile').last);
@@ -178,7 +189,10 @@ void main() {
     await tester.tap(find.text('Weekly encouragement'));
     await tester.pumpAndSettle();
 
-    final restored = AppServices.fromStorage(StorageService(prefs)).profile;
+    final restored = AppServices.fromStorage(
+      StorageService(prefs),
+      useSqlite: false,
+    ).profile;
     expect(restored.name, 'Raka Pratama');
     expect(restored.appearance, AppAppearance.dark);
     expect(restored.weekStartsMonday, isFalse);
@@ -191,7 +205,10 @@ void main() {
   });
 
   test('Study streak counts consecutive days with completed tasks', () async {
-    final tasks = AppServices.fromStorage(StorageService()).tasks;
+    final tasks = AppServices.fromStorage(
+      StorageService(),
+      useSqlite: false,
+    ).tasks;
     expect(tasks.currentStreak(), 0);
     final ids = tasks.tasks.map((t) => t.id).toList();
     final now = DateTime.now();
@@ -217,6 +234,7 @@ void main() {
       services: AppServices.fromStorage(
         StorageService(),
         chatReplyDelay: const Duration(milliseconds: 300),
+        useSqlite: false,
       ),
     );
     final chat = services.chat;
@@ -352,12 +370,18 @@ void main() {
   test('Chat: reuses one-on-one chats and saves them', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
-    final chat = AppServices.fromStorage(StorageService(prefs)).chat;
+    final chat = AppServices.fromStorage(
+      StorageService(prefs),
+      useSqlite: false,
+    ).chat;
     final first = await chat.directChatWith('rina');
     final again = await chat.directChatWith('rina');
     expect(again, first);
 
-    final restored = AppServices.fromStorage(StorageService(prefs)).chat;
+    final restored = AppServices.fromStorage(
+      StorageService(prefs),
+      useSqlite: false,
+    ).chat;
     expect(restored.byId(first), isNotNull);
     chat.dispose();
     restored.dispose();
@@ -413,17 +437,19 @@ void main() {
     await _reveal(tester, find.text('Post'));
     await tester.tap(find.text('Post'));
     await tester.pumpAndSettle();
+    await _waitForPublishingToFinish(tester);
 
     final post = services.community.posts.first;
     expect(post.title, 'Best SQL book?');
     expect(post.authorName, 'Student');
-
-    await tester.tap(find.text('Community').last);
+    await tester.tap(find.byTooltip('Community').last);
+    await tester.pumpAndSettle();
     await tester.pumpAndSettle();
     expect(services.community.postById(post.id)!.viewCount, 0);
     await tester.tap(find.text('Best SQL book?'));
     await tester.pumpAndSettle();
     expect(services.community.postById(post.id)!.viewCount, 1);
+    await _flushAsyncWork(tester);
 
     await tester.enterText(
       find.byType(TextField).last,
@@ -431,6 +457,7 @@ void main() {
     );
     await tester.tap(find.byTooltip('Send').first);
     await tester.pumpAndSettle();
+    await _flushAsyncWork(tester);
 
     expect(find.text('Try "SQL Antipatterns".'), findsOneWidget);
     expect(services.community.postById(post.id)!.comments, hasLength(1));
@@ -443,7 +470,10 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final services = await _signIn(
       tester,
-      services: AppServices.fromStorage(StorageService(prefs)),
+      services: AppServices.fromStorage(
+        StorageService(prefs),
+        useSqlite: false,
+      ),
     );
 
     await tester.tap(find.text('Profile').last);
@@ -464,12 +494,18 @@ void main() {
   test('Tasks and posts are saved and restored from storage', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
-    final first = AppServices.fromStorage(StorageService(prefs));
+    final first = AppServices.fromStorage(
+      StorageService(prefs),
+      useSqlite: false,
+    );
     final task = first.tasks.tasks.first;
     await first.tasks.setCompleted(task.id, !task.isCompleted);
     await first.community.toggleJoin('database');
 
-    final restored = AppServices.fromStorage(StorageService(prefs));
+    final restored = AppServices.fromStorage(
+      StorageService(prefs),
+      useSqlite: false,
+    );
     expect(restored.tasks.byId(task.id)!.isCompleted, !task.isCompleted);
     expect(restored.community.communityById('database')!.joined, isTrue);
   });
@@ -487,5 +523,26 @@ Future<void> _reveal(
     scrollable: find.byType(Scrollable).first,
   );
   await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _flushAsyncWork(WidgetTester tester) async {
+  await tester.runAsync(
+    () => Future<void>.delayed(const Duration(milliseconds: 100)),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _waitForPublishingToFinish(WidgetTester tester) async {
+  final timeout = Stopwatch()..start();
+  while (tester.any(find.text('Publishing…'))) {
+    if (timeout.elapsed > const Duration(seconds: 10)) {
+      fail('Post publishing did not finish within 10 seconds.');
+    }
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pump();
+  }
   await tester.pumpAndSettle();
 }

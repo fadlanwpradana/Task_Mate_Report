@@ -222,6 +222,78 @@
   "noCommunity": "Tanpa komunitas",
   "publish": "Posting",
   "postPublished": "Postingan dibagikan",
+  "postPhotos": "Foto (maksimal 4)",
+  "publishingPost": "Menerbitkan…",
+  "savingPost": "Menyimpan…",
+  "gallery": "Galeri",
+  "camera": "Kamera",
+  "removePhoto": "Hapus foto",
+  "uploadingPhotos": "Mengunggah foto: {percent}%",
+  "@uploadingPhotos": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "photoUploadRequiresSignIn": "Masuk ke Firebase untuk mengunggah foto postingan.",
+  "privateCommunityPhotosUnavailable": "Postingan foto belum tersedia di komunitas privat.",
+  "postNotAvailable": "Postingan ini sudah tidak tersedia.",
+  "editOwnPostOnly": "Kamu hanya dapat mengedit postingan milikmu.",
+  "postOptions": "Opsi postingan",
+  "deletePostQuestion": "Hapus postingan?",
+  "deletePostMessage": "Postingan ini akan dihapus dari umpan komunitas.",
+  "postDeletedTitle": "Postingan dihapus",
+  "postDeletedMessage": "Postingan berhasil dihapus.",
+  "ok": "Oke",
+  "retry": "Coba lagi",
+  "postDeleted": "Postingan dihapus.",
+  "postDeleteFailed": "Postingan tidak dapat dihapus: {error}",
+  "@postDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "postDeletedPhotosCleanupFailed": "Postingan dihapus, tetapi beberapa foto gagal dihapus: {error}",
+  "@postDeletedPhotosCleanupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "postPublishFailed": "Postingan tidak dapat diterbitkan: {error}",
+  "@postPublishFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "postPublishCleanupFailed": "Foto yang diunggah gagal dibersihkan: {error}",
+  "@postPublishCleanupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editPost": "Edit postingan",
+  "savePostChanges": "Simpan perubahan",
+  "postUpdated": "Postingan diperbarui.",
+  "postSaveFailed": "Postingan tidak dapat disimpan: {error}",
+  "@postSaveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "postSavedPhotosCleanupFailed": "Postingan tersimpan, tetapi beberapa foto gagal dihapus: {error}",
+  "@postSavedPhotosCleanupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "newPhotosCleanupFailed": "Foto baru gagal dibersihkan: {error}",
+  "@newPhotosCleanupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "requiredField": "Bagian ini wajib diisi.",
 
   "post": "Postingan",
   "comments": "Komentar",

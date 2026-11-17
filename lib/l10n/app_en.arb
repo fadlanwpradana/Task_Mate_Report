@@ -243,6 +243,78 @@
   "noCommunity": "No community",
   "publish": "Post",
   "postPublished": "Post published",
+  "postPhotos": "Photos (up to 4)",
+  "publishingPost": "Publishing…",
+  "savingPost": "Saving…",
+  "gallery": "Gallery",
+  "camera": "Camera",
+  "removePhoto": "Remove photo",
+  "uploadingPhotos": "Uploading photos: {percent}%",
+  "@uploadingPhotos": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "photoUploadRequiresSignIn": "Sign in to Firebase to upload post photos.",
+  "privateCommunityPhotosUnavailable": "Photo posts are not available in private communities yet.",
+  "postNotAvailable": "This post is no longer available.",
+  "editOwnPostOnly": "You can only edit your own posts.",
+  "postOptions": "Post options",
+  "deletePostQuestion": "Delete post?",
+  "deletePostMessage": "This post will be removed from the community feed.",
+  "postDeletedTitle": "Post deleted",
+  "postDeletedMessage": "Post has been deleted successfully.",
+  "ok": "OK",
+  "retry": "Retry",
+  "postDeleted": "Post deleted.",
+  "postDeleteFailed": "Could not delete post: {error}",
+  "@postDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "postDeletedPhotosCleanupFailed": "Post deleted, but some stored photos could not be removed: {error}",
+  "@postDeletedPhotosCleanupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "postPublishFailed": "Could not publish post: {error}",
+  "@postPublishFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "postPublishCleanupFailed": "Uploaded photos could not be cleaned up: {error}",
+  "@postPublishCleanupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editPost": "Edit post",
+  "savePostChanges": "Save changes",
+  "postUpdated": "Post updated.",
+  "postSaveFailed": "Could not save post: {error}",
+  "@postSaveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "postSavedPhotosCleanupFailed": "Post saved, but some removed photos could not be deleted: {error}",
+  "@postSavedPhotosCleanupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "newPhotosCleanupFailed": "New photos could not be cleaned up: {error}",
+  "@newPhotosCleanupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "requiredField": "This field is required.",
 
   "post": "Post",
   "comments": "Comments",
