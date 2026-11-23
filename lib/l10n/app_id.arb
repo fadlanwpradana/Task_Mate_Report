@@ -223,6 +223,43 @@
   "publish": "Posting",
   "postPublished": "Postingan dibagikan",
   "postPhotos": "Foto (maksimal 4)",
+  "postMedia": "Foto atau video",
+  "postVideo": "Video (MP4, maksimal 15 detik / 50 MB)",
+  "selectVideo": "Pilih video",
+  "removeVideo": "Hapus video",
+  "playVideo": "Putar video",
+  "pauseVideo": "Jeda video",
+  "videoDurationInfo": "Durasi: {duration}",
+  "@videoDurationInfo": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "videoFileSizeInfo": "Ukuran file: {size} MB",
+  "@videoFileSizeInfo": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingVideo": "Mengunggah video: {percent}%",
+  "@uploadingVideo": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "videoDurationTooLong": "Durasi video tidak boleh lebih dari 15 detik.",
+  "videoFileTooLarge": "Ukuran video tidak boleh lebih dari 50 MB.",
+  "videoMp4Only": "Hanya video MP4 yang didukung.",
+  "postMediaExclusive": "Postingan dapat berisi maksimal 4 foto atau 1 video, tidak keduanya.",
+  "videoDurationUnknown": "Durasi video tidak dapat diketahui.",
+  "videoPreviewFailed": "Video ini tidak dapat dibuka untuk pratinjau.",
+  "videoPlaybackFailed": "Video ini tidak dapat diputar.",
   "publishingPost": "Menerbitkan…",
   "savingPost": "Menyimpan…",
   "gallery": "Galeri",
@@ -237,9 +274,9 @@
     }
   },
   "photoUploadRequiresSignIn": "Masuk ke Firebase untuk mengunggah foto postingan.",
+  "postMediaUploadRequiresSignIn": "Masuk ke Firebase untuk mengunggah media postingan.",
   "privateCommunityPhotosUnavailable": "Postingan foto belum tersedia di komunitas privat.",
-  "postNotAvailable": "Postingan ini sudah tidak tersedia.",
-  "editOwnPostOnly": "Kamu hanya dapat mengedit postingan milikmu.",
+  "privateCommunityMediaUnavailable": "Postingan foto dan video belum tersedia di komunitas privat.",
   "postOptions": "Opsi postingan",
   "deletePostQuestion": "Hapus postingan?",
   "deletePostMessage": "Postingan ini akan dihapus dari umpan komunitas.",
@@ -268,27 +305,6 @@
   },
   "postPublishCleanupFailed": "Foto yang diunggah gagal dibersihkan: {error}",
   "@postPublishCleanupFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
-  "editPost": "Edit postingan",
-  "savePostChanges": "Simpan perubahan",
-  "postUpdated": "Postingan diperbarui.",
-  "postSaveFailed": "Postingan tidak dapat disimpan: {error}",
-  "@postSaveFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
-  "postSavedPhotosCleanupFailed": "Postingan tersimpan, tetapi beberapa foto gagal dihapus: {error}",
-  "@postSavedPhotosCleanupFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
-  "newPhotosCleanupFailed": "Foto baru gagal dibersihkan: {error}",
-  "@newPhotosCleanupFailed": {
     "placeholders": {
       "error": {}
     }

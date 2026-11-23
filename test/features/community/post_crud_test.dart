@@ -1,5 +1,4 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:task_mate_v4/features/community/services/firestore_community_repository.dart';
 import 'package:task_mate_v4/features/community/services/local_community_repository.dart';
@@ -44,45 +43,56 @@ void main() {
     );
 
     test(
-      'edits the original post and preserves owner, time, and counters',
+      'creates and deletes a video post without affecting other posts',
       () async {
         final db = FakeFirebaseFirestore();
         final repository = FirestoreCommunityRepository(firestore: db)
           ..signIn('alice');
         addTearDown(repository.dispose);
-        await repository.addPost(_post('edit-post'), postId: 'edit-post');
-        await _settle();
-        await db.collection('posts').doc('edit-post').update({
-          'likeCount': 7,
-          'viewCount': 11,
-          'commentCount': 4,
-        });
-        await _settle();
-        final original = repository.postById('edit-post')!;
-
-        await repository.updatePost(
-          original.copyWith(
-            title: 'Updated title',
-            body: 'Updated body',
-            imageUrls: const ['https://example.test/new.jpg'],
-          ),
+        final videoPost = PostModel(
+          id: 'video-post',
+          authorName: 'Ari',
+          authorId: 'original-author',
+          type: PostType.discussion,
+          title: 'A video post',
+          body: 'Video details',
+          mediaType: PostMediaType.video,
+          videoUrl: 'https://res.cloudinary.com/demo/video/upload/clip.mp4',
+          createdAt: DateTime.utc(2026),
+          likeCount: 2,
+          viewCount: 3,
         );
 
-        final saved = (await db.collection('posts').doc('edit-post').get())
-            .data()!;
-        expect(saved['title'], 'Updated title');
-        expect(saved['body'], 'Updated body');
-        expect(saved['imageUrls'], ['https://example.test/new.jpg']);
-        expect(saved['authorId'], 'alice');
-        expect((saved['createdAt']! as Timestamp).toDate(), original.createdAt);
-        expect(saved['likeCount'], 7);
-        expect(saved['viewCount'], 11);
-        expect(saved['commentCount'], 4);
-        expect((await db.collection('posts').get()).docs, hasLength(1));
+        await repository.addPost(videoPost, postId: videoPost.id);
+        await repository.addPost(
+          _post('unrelated-post'),
+          postId: 'unrelated-post',
+        );
+
+        final storedVideo = await db
+            .collection('posts')
+            .doc(videoPost.id)
+            .get();
+        expect(storedVideo.data()?['mediaType'], 'video');
+        expect(storedVideo.data()?['videoUrl'], videoPost.videoUrl);
+        expect(storedVideo.data()?['imageUrls'], isEmpty);
+        expect(storedVideo.data()?['authorId'], 'alice');
+        expect(storedVideo.data()?['likeCount'], 0);
+
+        await repository.deletePost(videoPost.id);
+
+        expect(
+          (await db.collection('posts').doc(videoPost.id).get()).exists,
+          isFalse,
+        );
+        expect(
+          (await db.collection('posts').doc('unrelated-post').get()).exists,
+          isTrue,
+        );
       },
     );
 
-    test('rejects another user editing or deleting a post', () async {
+    test('rejects another user deleting a post', () async {
       final db = FakeFirebaseFirestore();
       final alice = FirestoreCommunityRepository(firestore: db)
         ..signIn('alice');
@@ -91,12 +101,7 @@ void main() {
       addTearDown(bob.dispose);
       await alice.addPost(_post('owned-post'), postId: 'owned-post');
       await _settle();
-      final visibleToBob = bob.postById('owned-post')!;
 
-      await expectLater(
-        bob.updatePost(visibleToBob.copyWith(title: 'Not allowed')),
-        throwsA(isA<StateError>()),
-      );
       await expectLater(
         bob.deletePost('owned-post'),
         throwsA(isA<StateError>()),
@@ -125,36 +130,16 @@ void main() {
     });
   });
 
-  test(
-    'local repository edits and deletes only locally authored posts',
-    () async {
-      final repository = LocalCommunityRepository(StorageService());
-      addTearDown(repository.dispose);
-      final local = _post('local-post');
-      await repository.addPost(local);
-      final created = repository.postById('local-post')!;
-
-      await repository.updatePost(
-        created.copyWith(
-          title: 'Updated offline',
-          imageUrls: const ['https://example.test/local.jpg'],
-        ),
-      );
-      expect(repository.postById('local-post')!.title, 'Updated offline');
-      expect(repository.postById('local-post')!.imageUrls, [
-        'https://example.test/local.jpg',
-      ]);
-
-      await expectLater(
-        repository.updatePost(_post('post-firebase-auth')),
-        throwsA(isA<StateError>()),
-      );
-      await expectLater(
-        repository.deletePost('post-firebase-auth'),
-        throwsA(isA<StateError>()),
-      );
-      await repository.deletePost('local-post');
-      expect(repository.postById('local-post'), isNull);
-    },
-  );
+  test('local repository deletes only locally authored posts', () async {
+    final repository = LocalCommunityRepository(StorageService());
+    addTearDown(repository.dispose);
+    final local = _post('local-post');
+    await repository.addPost(local);
+    await expectLater(
+      repository.deletePost('post-firebase-auth'),
+      throwsA(isA<StateError>()),
+    );
+    await repository.deletePost('local-post');
+    expect(repository.postById('local-post'), isNull);
+  });
 }

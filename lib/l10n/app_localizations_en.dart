@@ -717,6 +717,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get postPhotos => 'Photos (up to 4)';
 
   @override
+  String get postMedia => 'Photos or video';
+
+  @override
+  String get postVideo => 'Video (MP4, max 15 sec / 50 MB)';
+
+  @override
+  String get selectVideo => 'Choose video';
+
+  @override
+  String get removeVideo => 'Remove video';
+
+  @override
+  String get playVideo => 'Play video';
+
+  @override
+  String get pauseVideo => 'Pause video';
+
+  @override
+  String videoDurationInfo(String duration) {
+    return 'Duration: $duration';
+  }
+
+  @override
+  String videoFileSizeInfo(String size) {
+    return 'File size: $size MB';
+  }
+
+  @override
+  String uploadingVideo(int percent) {
+    return 'Uploading video: $percent%';
+  }
+
+  @override
+  String get videoDurationTooLong =>
+      'Video duration must not exceed 15 seconds.';
+
+  @override
+  String get videoFileTooLarge => 'Video file size must not exceed 50 MB.';
+
+  @override
+  String get videoMp4Only => 'Only MP4 videos are supported.';
+
+  @override
+  String get postMediaExclusive =>
+      'A post can contain up to 4 images or 1 video, not both.';
+
+  @override
+  String get videoDurationUnknown => 'Could not determine video duration.';
+
+  @override
+  String get videoPreviewFailed =>
+      'This video could not be opened for preview.';
+
+  @override
+  String get videoPlaybackFailed => 'This video could not be played.';
+
+  @override
   String get publishingPost => 'Publishing…';
 
   @override
@@ -741,14 +798,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign in to Firebase to upload post photos.';
 
   @override
+  String get postMediaUploadRequiresSignIn =>
+      'Sign in to Firebase to upload post media.';
+
+  @override
   String get privateCommunityPhotosUnavailable =>
       'Photo posts are not available in private communities yet.';
 
   @override
-  String get postNotAvailable => 'This post is no longer available.';
-
-  @override
-  String get editOwnPostOnly => 'You can only edit your own posts.';
+  String get privateCommunityMediaUnavailable =>
+      'Photo and video posts are not available in private communities yet.';
 
   @override
   String get postOptions => 'Post options';
@@ -793,30 +852,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String postPublishCleanupFailed(Object error) {
     return 'Uploaded photos could not be cleaned up: $error';
-  }
-
-  @override
-  String get editPost => 'Edit post';
-
-  @override
-  String get savePostChanges => 'Save changes';
-
-  @override
-  String get postUpdated => 'Post updated.';
-
-  @override
-  String postSaveFailed(Object error) {
-    return 'Could not save post: $error';
-  }
-
-  @override
-  String postSavedPhotosCleanupFailed(Object error) {
-    return 'Post saved, but some removed photos could not be deleted: $error';
-  }
-
-  @override
-  String newPhotosCleanupFailed(Object error) {
-    return 'New photos could not be cleaned up: $error';
   }
 
   @override

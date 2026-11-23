@@ -13,7 +13,6 @@ abstract class CommunityRepository extends ChangeNotifier {
 
   String newPostId();
   Future<void> addPost(PostModel post, {String? postId});
-  Future<void> updatePost(PostModel post);
   Future<void> deletePost(String postId);
   Future<void> toggleLike(String postId);
   Future<void> recordView(String postId);

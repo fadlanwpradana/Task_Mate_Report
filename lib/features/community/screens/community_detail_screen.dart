@@ -38,7 +38,7 @@ class CommunityDetailScreen extends StatelessWidget {
                           CreatePostScreen(initialCommunityId: communityId),
                     ),
                   ),
-                  child: const Icon(Icons.edit_rounded),
+                  child: const Icon(Icons.add_rounded),
                 )
               : null,
           body: ListView(

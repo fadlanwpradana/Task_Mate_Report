@@ -2,6 +2,8 @@ import 'comment_model.dart';
 
 enum PostType { discussion, question, assignment }
 
+enum PostMediaType { image, video }
+
 class PostModel {
   const PostModel({
     required this.id,
@@ -15,6 +17,8 @@ class PostModel {
     this.communityId,
     this.tags = const [],
     this.imageUrls = const [],
+    this.mediaType,
+    this.videoUrl,
     this.likeCount = 0,
     this.viewCount = 0,
     this.likedByMe = false,
@@ -35,6 +39,8 @@ class PostModel {
   final String body;
   final List<String> tags;
   final List<String> imageUrls;
+  final PostMediaType? mediaType;
+  final String? videoUrl;
   final int likeCount;
   final int viewCount;
   final bool likedByMe;
@@ -49,6 +55,13 @@ class PostModel {
   final DateTime createdAt;
 
   int get totalComments => commentCount ?? comments.length;
+
+  PostMediaType? get resolvedMediaType {
+    if (mediaType != null) return mediaType;
+    if (videoUrl?.isNotEmpty == true) return PostMediaType.video;
+    if (imageUrls.isNotEmpty) return PostMediaType.image;
+    return null;
+  }
 
   PostModel copyWith({
     int? likeCount,
@@ -73,6 +86,8 @@ class PostModel {
       body: body ?? this.body,
       tags: tags ?? this.tags,
       imageUrls: imageUrls ?? this.imageUrls,
+      mediaType: mediaType,
+      videoUrl: videoUrl,
       createdAt: createdAt,
       likeCount: likeCount ?? this.likeCount,
       viewCount: viewCount ?? this.viewCount,
@@ -96,6 +111,8 @@ class PostModel {
     'body': body,
     'tags': tags,
     'imageUrls': imageUrls,
+    if (resolvedMediaType != null) 'mediaType': resolvedMediaType!.name,
+    if (videoUrl != null) 'videoUrl': videoUrl,
     'likeCount': likeCount,
     'viewCount': viewCount,
     'likedByMe': likedByMe,
@@ -106,6 +123,9 @@ class PostModel {
   };
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
+    final imageUrls = (json['imageUrls'] as List<dynamic>? ?? [])
+        .cast<String>();
+    final videoUrl = json['videoUrl'] as String?;
     return PostModel(
       id: json['id'] as String,
       authorId: json['authorId'] as String?,
@@ -116,7 +136,13 @@ class PostModel {
       title: json['title'] as String,
       body: json['body'] as String,
       tags: (json['tags'] as List<dynamic>? ?? []).cast<String>(),
-      imageUrls: (json['imageUrls'] as List<dynamic>? ?? []).cast<String>(),
+      imageUrls: imageUrls,
+      mediaType: readMediaType(
+        json['mediaType'],
+        imageUrls: imageUrls,
+        videoUrl: videoUrl,
+      ),
+      videoUrl: videoUrl,
       likeCount: json['likeCount'] as int? ?? 0,
       viewCount: json['viewCount'] as int? ?? 0,
       likedByMe: json['likedByMe'] as bool? ?? false,
@@ -127,5 +153,17 @@ class PostModel {
       commentCount: json['commentCount'] as int?,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
+  }
+
+  static PostMediaType? readMediaType(
+    Object? value, {
+    required List<String> imageUrls,
+    required String? videoUrl,
+  }) {
+    if (value == PostMediaType.image.name) return PostMediaType.image;
+    if (value == PostMediaType.video.name) return PostMediaType.video;
+    if (videoUrl?.isNotEmpty == true) return PostMediaType.video;
+    if (imageUrls.isNotEmpty) return PostMediaType.image;
+    return null;
   }
 }

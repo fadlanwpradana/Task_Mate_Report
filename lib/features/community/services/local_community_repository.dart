@@ -6,7 +6,7 @@ import '../../../models/comment_model.dart';
 import '../../../models/community_model.dart';
 import '../../../models/post_model.dart';
 import 'community_repository.dart';
-import 'post_image_service.dart';
+import 'post_video_service.dart';
 
 /// Offline demo community stored on the device, with sample posts written
 /// by the demo chat users.
@@ -60,7 +60,11 @@ class LocalCommunityRepository extends CommunityRepository {
   @override
   Future<void> addPost(PostModel post, {String? postId}) async {
     await _postsReady;
-    PostImageService.ensureCapacity(0, post.imageUrls.length);
+    PostVideoService.validatePostMedia(
+      imageUrls: post.imageUrls,
+      mediaType: post.resolvedMediaType,
+      videoUrl: post.videoUrl,
+    );
     _posts.add(
       PostModel(
         id: postId ?? post.id,
@@ -73,26 +77,10 @@ class LocalCommunityRepository extends CommunityRepository {
         body: post.body,
         tags: post.tags,
         imageUrls: post.imageUrls,
+        mediaType: post.resolvedMediaType,
+        videoUrl: post.videoUrl,
         createdAt: post.createdAt,
       ),
-    );
-    await _save();
-  }
-
-  @override
-  Future<void> updatePost(PostModel post) async {
-    await _postsReady;
-    PostImageService.ensureCapacity(0, post.imageUrls.length);
-    final index = _posts.indexWhere((item) => item.id == post.id);
-    if (index == -1) throw StateError('Post no longer exists.');
-    if (_posts[index].authorId != meId) {
-      throw StateError('You can only edit your own posts.');
-    }
-    _posts[index] = _posts[index].copyWith(
-      title: post.title,
-      body: post.body,
-      tags: post.tags,
-      imageUrls: post.imageUrls,
     );
     await _save();
   }

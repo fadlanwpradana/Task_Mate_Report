@@ -1340,6 +1340,102 @@ abstract class AppLocalizations {
   /// **'Photos (up to 4)'**
   String get postPhotos;
 
+  /// No description provided for @postMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos or video'**
+  String get postMedia;
+
+  /// No description provided for @postVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video (MP4, max 15 sec / 50 MB)'**
+  String get postVideo;
+
+  /// No description provided for @selectVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose video'**
+  String get selectVideo;
+
+  /// No description provided for @removeVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove video'**
+  String get removeVideo;
+
+  /// No description provided for @playVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Play video'**
+  String get playVideo;
+
+  /// No description provided for @pauseVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause video'**
+  String get pauseVideo;
+
+  /// No description provided for @videoDurationInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration: {duration}'**
+  String videoDurationInfo(String duration);
+
+  /// No description provided for @videoFileSizeInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'File size: {size} MB'**
+  String videoFileSizeInfo(String size);
+
+  /// No description provided for @uploadingVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading video: {percent}%'**
+  String uploadingVideo(int percent);
+
+  /// No description provided for @videoDurationTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Video duration must not exceed 15 seconds.'**
+  String get videoDurationTooLong;
+
+  /// No description provided for @videoFileTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Video file size must not exceed 50 MB.'**
+  String get videoFileTooLarge;
+
+  /// No description provided for @videoMp4Only.
+  ///
+  /// In en, this message translates to:
+  /// **'Only MP4 videos are supported.'**
+  String get videoMp4Only;
+
+  /// No description provided for @postMediaExclusive.
+  ///
+  /// In en, this message translates to:
+  /// **'A post can contain up to 4 images or 1 video, not both.'**
+  String get postMediaExclusive;
+
+  /// No description provided for @videoDurationUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not determine video duration.'**
+  String get videoDurationUnknown;
+
+  /// No description provided for @videoPreviewFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'This video could not be opened for preview.'**
+  String get videoPreviewFailed;
+
+  /// No description provided for @videoPlaybackFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'This video could not be played.'**
+  String get videoPlaybackFailed;
+
   /// No description provided for @publishingPost.
   ///
   /// In en, this message translates to:
@@ -1382,23 +1478,23 @@ abstract class AppLocalizations {
   /// **'Sign in to Firebase to upload post photos.'**
   String get photoUploadRequiresSignIn;
 
+  /// No description provided for @postMediaUploadRequiresSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to Firebase to upload post media.'**
+  String get postMediaUploadRequiresSignIn;
+
   /// No description provided for @privateCommunityPhotosUnavailable.
   ///
   /// In en, this message translates to:
   /// **'Photo posts are not available in private communities yet.'**
   String get privateCommunityPhotosUnavailable;
 
-  /// No description provided for @postNotAvailable.
+  /// No description provided for @privateCommunityMediaUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'This post is no longer available.'**
-  String get postNotAvailable;
-
-  /// No description provided for @editOwnPostOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'You can only edit your own posts.'**
-  String get editOwnPostOnly;
+  /// **'Photo and video posts are not available in private communities yet.'**
+  String get privateCommunityMediaUnavailable;
 
   /// No description provided for @postOptions.
   ///
@@ -1471,42 +1567,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Uploaded photos could not be cleaned up: {error}'**
   String postPublishCleanupFailed(Object error);
-
-  /// No description provided for @editPost.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit post'**
-  String get editPost;
-
-  /// No description provided for @savePostChanges.
-  ///
-  /// In en, this message translates to:
-  /// **'Save changes'**
-  String get savePostChanges;
-
-  /// No description provided for @postUpdated.
-  ///
-  /// In en, this message translates to:
-  /// **'Post updated.'**
-  String get postUpdated;
-
-  /// No description provided for @postSaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not save post: {error}'**
-  String postSaveFailed(Object error);
-
-  /// No description provided for @postSavedPhotosCleanupFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Post saved, but some removed photos could not be deleted: {error}'**
-  String postSavedPhotosCleanupFailed(Object error);
-
-  /// No description provided for @newPhotosCleanupFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'New photos could not be cleaned up: {error}'**
-  String newPhotosCleanupFailed(Object error);
 
   /// No description provided for @requiredField.
   ///

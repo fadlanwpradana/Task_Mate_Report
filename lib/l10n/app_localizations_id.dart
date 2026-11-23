@@ -689,6 +689,63 @@ class AppLocalizationsId extends AppLocalizations {
   String get postPhotos => 'Foto (maksimal 4)';
 
   @override
+  String get postMedia => 'Foto atau video';
+
+  @override
+  String get postVideo => 'Video (MP4, maksimal 15 detik / 50 MB)';
+
+  @override
+  String get selectVideo => 'Pilih video';
+
+  @override
+  String get removeVideo => 'Hapus video';
+
+  @override
+  String get playVideo => 'Putar video';
+
+  @override
+  String get pauseVideo => 'Jeda video';
+
+  @override
+  String videoDurationInfo(String duration) {
+    return 'Durasi: $duration';
+  }
+
+  @override
+  String videoFileSizeInfo(String size) {
+    return 'Ukuran file: $size MB';
+  }
+
+  @override
+  String uploadingVideo(int percent) {
+    return 'Mengunggah video: $percent%';
+  }
+
+  @override
+  String get videoDurationTooLong =>
+      'Durasi video tidak boleh lebih dari 15 detik.';
+
+  @override
+  String get videoFileTooLarge => 'Ukuran video tidak boleh lebih dari 50 MB.';
+
+  @override
+  String get videoMp4Only => 'Hanya video MP4 yang didukung.';
+
+  @override
+  String get postMediaExclusive =>
+      'Postingan dapat berisi maksimal 4 foto atau 1 video, tidak keduanya.';
+
+  @override
+  String get videoDurationUnknown => 'Durasi video tidak dapat diketahui.';
+
+  @override
+  String get videoPreviewFailed =>
+      'Video ini tidak dapat dibuka untuk pratinjau.';
+
+  @override
+  String get videoPlaybackFailed => 'Video ini tidak dapat diputar.';
+
+  @override
   String get publishingPost => 'Menerbitkan…';
 
   @override
@@ -713,14 +770,16 @@ class AppLocalizationsId extends AppLocalizations {
       'Masuk ke Firebase untuk mengunggah foto postingan.';
 
   @override
+  String get postMediaUploadRequiresSignIn =>
+      'Masuk ke Firebase untuk mengunggah media postingan.';
+
+  @override
   String get privateCommunityPhotosUnavailable =>
       'Postingan foto belum tersedia di komunitas privat.';
 
   @override
-  String get postNotAvailable => 'Postingan ini sudah tidak tersedia.';
-
-  @override
-  String get editOwnPostOnly => 'Kamu hanya dapat mengedit postingan milikmu.';
+  String get privateCommunityMediaUnavailable =>
+      'Postingan foto dan video belum tersedia di komunitas privat.';
 
   @override
   String get postOptions => 'Opsi postingan';
@@ -765,30 +824,6 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String postPublishCleanupFailed(Object error) {
     return 'Foto yang diunggah gagal dibersihkan: $error';
-  }
-
-  @override
-  String get editPost => 'Edit postingan';
-
-  @override
-  String get savePostChanges => 'Simpan perubahan';
-
-  @override
-  String get postUpdated => 'Postingan diperbarui.';
-
-  @override
-  String postSaveFailed(Object error) {
-    return 'Postingan tidak dapat disimpan: $error';
-  }
-
-  @override
-  String postSavedPhotosCleanupFailed(Object error) {
-    return 'Postingan tersimpan, tetapi beberapa foto gagal dihapus: $error';
-  }
-
-  @override
-  String newPhotosCleanupFailed(Object error) {
-    return 'Foto baru gagal dibersihkan: $error';
   }
 
   @override
