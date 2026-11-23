@@ -6,7 +6,6 @@ import '../../../core/app_scope.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/post_model.dart';
-import '../screens/edit_post_screen.dart';
 
 class PostOptionsMenu extends StatefulWidget {
   const PostOptionsMenu({
@@ -44,27 +43,9 @@ class _PostOptionsMenuState extends State<PostOptionsMenu> {
     }
     return PopupMenuButton<_PostAction>(
       tooltip: l10n.postOptions,
-      onSelected: (action) {
-        if (action == _PostAction.edit) {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => EditPostScreen(postId: widget.post.id),
-            ),
-          );
-        } else {
-          _confirmDelete(context);
-        }
-      },
+      onSelected: (_) => _confirmDelete(context),
       itemBuilder: (context) => [
-        PopupMenuItem(
-          value: _PostAction.edit,
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.edit_outlined),
-            title: Text(l10n.edit),
-          ),
-        ),
-        PopupMenuItem(
+        PopupMenuItem<_PostAction>(
           value: _PostAction.delete,
           child: ListTile(
             contentPadding: EdgeInsets.zero,
@@ -166,7 +147,6 @@ class _PostOptionsMenuState extends State<PostOptionsMenu> {
     if (dialogOpen && navigator.mounted) navigator.pop();
     await dialogFuture;
   }
-
 }
 
-enum _PostAction { edit, delete }
+enum _PostAction { delete }

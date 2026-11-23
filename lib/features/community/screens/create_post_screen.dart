@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/app_scope.dart';
@@ -10,11 +12,22 @@ import '../../../shared/widgets/common_widgets.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../services/cloudinary_service.dart';
 import '../services/post_image_service.dart';
+import '../services/post_video_service.dart';
+import '../widgets/post_video_player.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({this.initialCommunityId, super.key});
+  const CreatePostScreen({
+    this.initialCommunityId,
+    this.imageService,
+    this.videoService,
+    this.cloudinaryService,
+    super.key,
+  });
 
   final String? initialCommunityId;
+  final PostImageService? imageService;
+  final PostVideoService? videoService;
+  final CloudinaryService? cloudinaryService;
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -25,16 +38,31 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
   final _tagController = TextEditingController();
-  final _imageService = PostImageService();
+  late final PostImageService _imageService;
+  late final PostVideoService _videoService;
+  late final CloudinaryService _cloudinaryService;
   PostType _type = PostType.question;
   final List<String> _tags = [];
   final List<SelectedPostImage> _images = [];
+  SelectedPostVideo? _video;
   var _publishing = false;
+  var _selectingImages = false;
+  var _selectingVideo = false;
   double _uploadProgress = 0;
   late String? _communityId = widget.initialCommunityId;
 
   @override
+  void initState() {
+    super.initState();
+    _imageService = widget.imageService ?? PostImageService();
+    _videoService = widget.videoService ?? PostVideoService();
+    _cloudinaryService = widget.cloudinaryService ?? CloudinaryService();
+  }
+
+  @override
   void dispose() {
+    final video = _video;
+    if (video != null) _disposeSelectedVideo(video);
     _titleController.dispose();
     _bodyController.dispose();
     _tagController.dispose();
@@ -54,6 +82,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _selectImages({required bool useCamera}) async {
+    if (_publishing || _selectingImages || _selectingVideo) return;
+    if (_video != null) {
+      _showError(AppLocalizations.of(context).postMediaExclusive);
+      return;
+    }
     final services = AppScope.of(context);
     if (services.community.communityById(_communityId)?.isPrivate == true) {
       _showError(
@@ -65,6 +98,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       _showError(AppLocalizations.of(context).photoUploadRequiresSignIn);
       return;
     }
+    setState(() => _selectingImages = true);
     try {
       if (useCamera) {
         final image = await _imageService.captureFromCamera(
@@ -82,8 +116,58 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         }
       }
     } catch (error) {
-      _showError(error.toString());
+      _showError(_selectionErrorMessage(error));
+    } finally {
+      if (mounted) setState(() => _selectingImages = false);
     }
+  }
+
+  Future<void> _selectVideo() async {
+    if (_publishing || _selectingImages || _selectingVideo) return;
+    if (_images.isNotEmpty) {
+      _showError(AppLocalizations.of(context).postMediaExclusive);
+      return;
+    }
+    if (_video != null) return;
+
+    final services = AppScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    if (services.community.communityById(_communityId)?.isPrivate == true) {
+      _showError(l10n.privateCommunityMediaUnavailable);
+      return;
+    }
+    if (!services.online || services.currentUserId == null) {
+      _showError(l10n.postMediaUploadRequiresSignIn);
+      return;
+    }
+
+    setState(() => _selectingVideo = true);
+    try {
+      final selected = await _videoService.pickAndValidateFromGallery();
+      if (!mounted) {
+        if (selected != null) _disposeSelectedVideo(selected);
+        return;
+      }
+      if (selected != null) setState(() => _video = selected);
+    } catch (error) {
+      if (mounted) {
+        _showError(_videoValidationError(error, l10n) ?? error.toString());
+      }
+    } finally {
+      if (mounted) setState(() => _selectingVideo = false);
+    }
+  }
+
+  void _removeVideo() {
+    final selected = _video;
+    if (selected == null) return;
+    setState(() => _video = null);
+    _disposeSelectedVideo(selected);
+  }
+
+  void _disposeSelectedVideo(SelectedPostVideo video) {
+    PostVideoPlaybackCoordinator.release(video.controller);
+    unawaited(video.controller.dispose());
   }
 
   void _showError(String message) {
@@ -95,6 +179,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (_publishing || !_formKey.currentState!.validate()) return;
     _addTag();
     final l10n = AppLocalizations.of(context);
+    try {
+      PostVideoService.ensureExclusiveMedia(
+        imageCount: _images.length,
+        hasVideo: _video != null,
+      );
+    } on FormatException catch (error) {
+      _showError(_videoValidationError(error, l10n) ?? error.message);
+      return;
+    }
     setState(() {
       _publishing = true;
       _uploadProgress = 0;
@@ -103,6 +196,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final postId = services.community.newPostId();
     var uploadedUrls = <String>[];
+    String? uploadedVideoUrl;
     try {
       if (_images.isNotEmpty) {
         if (services.community.communityById(_communityId)?.isPrivate == true) {
@@ -114,13 +208,40 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             'Photo uploads require an authenticated Firebase account.',
           );
         }
-        uploadedUrls = await CloudinaryService().uploadImages(
+        uploadedUrls = await _cloudinaryService.uploadImages(
           images: _images,
           onProgress: (progress) {
             if (mounted) setState(() => _uploadProgress = progress);
           },
         );
       }
+      final selectedVideo = _video;
+      if (selectedVideo != null) {
+        if (services.community.communityById(_communityId)?.isPrivate == true) {
+          throw StateError(l10n.privateCommunityMediaUnavailable);
+        }
+        if (services.currentUserId == null || !services.online) {
+          throw StateError(l10n.postMediaUploadRequiresSignIn);
+        }
+        uploadedVideoUrl = await _cloudinaryService.uploadVideo(
+          file: selectedVideo.file,
+          duration: selectedVideo.duration,
+          expectedSizeBytes: selectedVideo.sizeBytes,
+          onProgress: (progress) {
+            if (mounted) setState(() => _uploadProgress = progress);
+          },
+        );
+      }
+      final mediaType = uploadedVideoUrl != null
+          ? PostMediaType.video
+          : uploadedUrls.isNotEmpty
+          ? PostMediaType.image
+          : null;
+      PostVideoService.validatePostMedia(
+        imageUrls: uploadedUrls,
+        mediaType: mediaType,
+        videoUrl: uploadedVideoUrl,
+      );
       await services.community.addPost(
         PostModel(
           id: postId,
@@ -131,6 +252,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           body: _bodyController.text.trim(),
           tags: [..._tags],
           imageUrls: uploadedUrls,
+          mediaType: mediaType,
+          videoUrl: uploadedVideoUrl,
           createdAt: DateTime.now(),
         ),
         postId: postId,
@@ -139,12 +262,39 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       Navigator.of(context).pop();
       messenger.showSnackBar(SnackBar(content: Text(l10n.postPublished)));
     } catch (error) {
-      final message = l10n.postPublishFailed(error.toString());
+      final validationMessage = _videoValidationError(error, l10n);
+      final message =
+          validationMessage ?? l10n.postPublishFailed(error.toString());
       if (mounted) _showError(message);
     } finally {
       if (mounted) setState(() => _publishing = false);
     }
   }
+
+  String _selectionErrorMessage(Object error) {
+    if (error is FormatException) return error.message;
+    return error.toString();
+  }
+
+  String? _videoValidationError(Object error, AppLocalizations l10n) {
+    if (error is! FormatException) return null;
+    return switch (error.message) {
+      PostVideoService.durationErrorMessage => l10n.videoDurationTooLong,
+      PostVideoService.fileSizeErrorMessage => l10n.videoFileTooLarge,
+      PostVideoService.formatErrorMessage => l10n.videoMp4Only,
+      PostVideoService.mediaConflictMessage => l10n.postMediaExclusive,
+      PostVideoService.durationUnknownMessage => l10n.videoDurationUnknown,
+      _ => null,
+    };
+  }
+
+  String _durationLabel(Duration duration) {
+    final seconds = duration.inMilliseconds / Duration.millisecondsPerSecond;
+    return '${seconds.toStringAsFixed(1)} sec';
+  }
+
+  String _sizeLabel(int sizeBytes) =>
+      (sizeBytes / (1024 * 1024)).toStringAsFixed(1);
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +341,36 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 label: l10n.descriptionLabel,
               ),
             ),
-            FieldLabel(l10n.postPhotos),
+            FieldLabel(l10n.postMedia),
+            if (_video case final video?) ...[
+              const SizedBox(height: 8),
+              FieldLabel(l10n.postVideo),
+              CommunityInlineVideo(controller: video.controller),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.videoDurationInfo(
+                            _durationLabel(video.duration),
+                          ),
+                        ),
+                        Text(
+                          l10n.videoFileSizeInfo(_sizeLabel(video.sizeBytes)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: l10n.removeVideo,
+                    onPressed: _publishing ? null : _removeVideo,
+                    icon: const Icon(Icons.delete_outline_rounded),
+                  ),
+                ],
+              ),
+            ],
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -213,7 +392,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         right: 2,
                         child: IconButton.filledTonal(
                           tooltip: l10n.removePhoto,
-                          onPressed: _publishing
+                          onPressed: _publishing || _selectingImages
                               ? null
                               : () => setState(() => _images.removeAt(index)),
                           icon: const Icon(Icons.close_rounded, size: 16),
@@ -224,7 +403,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                 if (_images.length < PostImageService.maxImages)
                   TextButton.icon(
-                    onPressed: _publishing
+                    onPressed:
+                        _publishing ||
+                            _selectingImages ||
+                            _selectingVideo ||
+                            _video != null
                         ? null
                         : () => _selectImages(useCamera: false),
                     icon: const Icon(Icons.photo_library_outlined),
@@ -232,19 +415,51 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                 if (_images.length < PostImageService.maxImages)
                   TextButton.icon(
-                    onPressed: _publishing
+                    onPressed:
+                        _publishing ||
+                            _selectingImages ||
+                            _selectingVideo ||
+                            _video != null
                         ? null
                         : () => _selectImages(useCamera: true),
                     icon: const Icon(Icons.camera_alt_outlined),
                     label: Text(l10n.camera),
                   ),
+                TextButton.icon(
+                  onPressed:
+                      _publishing ||
+                          _selectingImages ||
+                          _selectingVideo ||
+                          _video != null ||
+                          _images.isNotEmpty
+                      ? null
+                      : _selectVideo,
+                  icon: _selectingVideo
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.video_library_outlined),
+                  label: Text(l10n.selectVideo),
+                ),
               ],
             ),
-            if (_publishing && _images.isNotEmpty) ...[
+            if (_images.isNotEmpty || _video != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                l10n.postMediaExclusive,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            if (_publishing && (_images.isNotEmpty || _video != null)) ...[
               const SizedBox(height: 8),
               LinearProgressIndicator(value: _uploadProgress),
               const SizedBox(height: 8),
-              Text(l10n.uploadingPhotos((_uploadProgress * 100).round())),
+              Text(
+                _video != null
+                    ? l10n.uploadingVideo((_uploadProgress * 100).round())
+                    : l10n.uploadingPhotos((_uploadProgress * 100).round()),
+              ),
             ],
             FieldLabel(l10n.tags),
             if (_tags.isNotEmpty) ...[

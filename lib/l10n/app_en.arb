@@ -244,6 +244,43 @@
   "publish": "Post",
   "postPublished": "Post published",
   "postPhotos": "Photos (up to 4)",
+  "postMedia": "Photos or video",
+  "postVideo": "Video (MP4, max 15 sec / 50 MB)",
+  "selectVideo": "Choose video",
+  "removeVideo": "Remove video",
+  "playVideo": "Play video",
+  "pauseVideo": "Pause video",
+  "videoDurationInfo": "Duration: {duration}",
+  "@videoDurationInfo": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "videoFileSizeInfo": "File size: {size} MB",
+  "@videoFileSizeInfo": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingVideo": "Uploading video: {percent}%",
+  "@uploadingVideo": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "videoDurationTooLong": "Video duration must not exceed 15 seconds.",
+  "videoFileTooLarge": "Video file size must not exceed 50 MB.",
+  "videoMp4Only": "Only MP4 videos are supported.",
+  "postMediaExclusive": "A post can contain up to 4 images or 1 video, not both.",
+  "videoDurationUnknown": "Could not determine video duration.",
+  "videoPreviewFailed": "This video could not be opened for preview.",
+  "videoPlaybackFailed": "This video could not be played.",
   "publishingPost": "Publishing…",
   "savingPost": "Saving…",
   "gallery": "Gallery",
@@ -258,9 +295,9 @@
     }
   },
   "photoUploadRequiresSignIn": "Sign in to Firebase to upload post photos.",
+  "postMediaUploadRequiresSignIn": "Sign in to Firebase to upload post media.",
   "privateCommunityPhotosUnavailable": "Photo posts are not available in private communities yet.",
-  "postNotAvailable": "This post is no longer available.",
-  "editOwnPostOnly": "You can only edit your own posts.",
+  "privateCommunityMediaUnavailable": "Photo and video posts are not available in private communities yet.",
   "postOptions": "Post options",
   "deletePostQuestion": "Delete post?",
   "deletePostMessage": "This post will be removed from the community feed.",
@@ -289,27 +326,6 @@
   },
   "postPublishCleanupFailed": "Uploaded photos could not be cleaned up: {error}",
   "@postPublishCleanupFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
-  "editPost": "Edit post",
-  "savePostChanges": "Save changes",
-  "postUpdated": "Post updated.",
-  "postSaveFailed": "Could not save post: {error}",
-  "@postSaveFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
-  "postSavedPhotosCleanupFailed": "Post saved, but some removed photos could not be deleted: {error}",
-  "@postSavedPhotosCleanupFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
-  "newPhotosCleanupFailed": "New photos could not be cleaned up: {error}",
-  "@newPhotosCleanupFailed": {
     "placeholders": {
       "error": {}
     }

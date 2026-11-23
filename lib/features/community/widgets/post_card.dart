@@ -9,6 +9,7 @@ import '../../../shared/widgets/common_widgets.dart';
 import '../screens/post_detail_screen.dart';
 import 'post_image_gallery.dart';
 import 'post_options_menu.dart';
+import 'post_video_player.dart';
 
 class PostCard extends StatelessWidget {
   const PostCard({required this.post, super.key});
@@ -50,7 +51,9 @@ class PostCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(height: 1.4),
               ),
-              if (post.imageUrls.isNotEmpty)
+              if (post.resolvedMediaType == PostMediaType.video)
+                PostVideoPlayer(videoUrl: post.videoUrl ?? '')
+              else if (post.imageUrls.isNotEmpty)
                 PostImageGallery(imageUrls: post.imageUrls),
               if (post.tags.isNotEmpty) ...[
                 const SizedBox(height: 10),

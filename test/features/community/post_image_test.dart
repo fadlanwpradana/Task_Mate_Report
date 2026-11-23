@@ -127,7 +127,5 @@ void main() {
   });
 }
 
-SelectedPostImage _image(String name) => SelectedPostImage(
-  name: name,
-  bytes: Uint8List.fromList([1, 2, 3]),
-);
+SelectedPostImage _image(String name) =>
+    SelectedPostImage(name: name, bytes: Uint8List.fromList([1, 2, 3]));

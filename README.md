@@ -70,11 +70,23 @@ After changing security rules or indexes, deploy them:
 firebase deploy --only firestore
 ```
 
-Community photo uploads use the unsigned Cloudinary preset `taskmate_upload`
-in folder `taskmate`. Verify the preset in Cloudinary before testing uploads.
-The Flutter client does not include an API secret or delete Cloudinary assets;
-private-community photo uploads remain disabled until a safe media policy is
-verified.
+Community image and video uploads use Cloudinary's unsigned preset
+`taskmate_upload` in folder `taskmate` (cloud `mr5ddhj5`). The preset must allow
+both image and MP4/video formats. The app allows up to four images or one MP4
+video per post; videos must be at most 15 seconds and 50 MB. Images and videos
+cannot be combined in one post.
+
+Before testing, verify the preset's allowed formats in Cloudinary and confirm
+that it accepts MP4. On a real device, select a short MP4 from the gallery,
+check its preview and duration/size, publish it, and verify playback in the
+feed. Also try an over-limit video, a failed upload (for example with network
+disabled), and deleting a video post. Gallery selection and playback require no
+microphone permission. Private-community media uploads remain disabled until a
+safe media policy is verified.
+
+The Flutter client does not include a Cloudinary API secret and does not delete
+Cloudinary assets. Deleting a post removes its Firestore document, but its
+Cloudinary media may remain until a trusted signed backend handles cleanup.
 
 ## Technology and project status
 

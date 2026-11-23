@@ -35,5 +35,41 @@ void main() {
       expect(restored.imageUrls, post.imageUrls);
       expect(restored.totalComments, 3);
     });
+
+    test(
+      'infers image media type for posts created before the media field',
+      () {
+        final post = PostModel.fromJson({
+          'id': 'legacy-image',
+          'authorName': 'Ari',
+          'type': 'discussion',
+          'title': 'Photo',
+          'body': 'A legacy photo post',
+          'imageUrls': ['https://example.test/a.jpg'],
+          'createdAt': DateTime.utc(2026).toIso8601String(),
+        });
+
+        expect(post.resolvedMediaType, PostMediaType.image);
+      },
+    );
+
+    test('round-trips video media fields', () {
+      final post = PostModel(
+        id: 'video-post',
+        authorName: 'Ari',
+        type: PostType.discussion,
+        title: 'Video',
+        body: 'A short video',
+        mediaType: PostMediaType.video,
+        videoUrl: 'https://res.cloudinary.com/demo/video/upload/clip.mp4',
+        createdAt: DateTime.utc(2026),
+      );
+
+      final restored = PostModel.fromJson(post.toJson());
+
+      expect(restored.resolvedMediaType, PostMediaType.video);
+      expect(restored.videoUrl, post.videoUrl);
+      expect(restored.imageUrls, isEmpty);
+    });
   });
 }

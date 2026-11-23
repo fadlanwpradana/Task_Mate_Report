@@ -8,7 +8,7 @@ import '../../../models/comment_model.dart';
 import '../../../models/community_model.dart';
 import '../../../models/post_model.dart';
 import 'community_repository.dart';
-import 'post_image_service.dart';
+import 'post_video_service.dart';
 
 typedef _Sub = StreamSubscription<QuerySnapshot<Map<String, dynamic>>>;
 
@@ -200,7 +200,11 @@ class FirestoreCommunityRepository extends CommunityRepository {
       throw StateError('Community no longer exists.');
     }
     final community = communitySnapshot?.data();
-    PostImageService.ensureCapacity(0, post.imageUrls.length);
+    PostVideoService.validatePostMedia(
+      imageUrls: post.imageUrls,
+      mediaType: post.resolvedMediaType,
+      videoUrl: post.videoUrl,
+    );
     final posts = _db.collection('posts');
     final ref = postId == null ? posts.doc() : posts.doc(postId);
     final batch = _db.batch()
@@ -215,6 +219,9 @@ class FirestoreCommunityRepository extends CommunityRepository {
         'body': post.body,
         'tags': post.tags,
         'imageUrls': post.imageUrls,
+        if (post.resolvedMediaType != null)
+          'mediaType': post.resolvedMediaType!.name,
+        if (post.videoUrl != null) 'videoUrl': post.videoUrl,
         'likedBy': <String>[],
         'likeCount': 0,
         'viewCount': 0,
@@ -227,24 +234,6 @@ class FirestoreCommunityRepository extends CommunityRepository {
       });
     }
     await batch.commit();
-  }
-
-  @override
-  Future<void> updatePost(PostModel post) async {
-    final uid = _requireUid();
-    PostImageService.ensureCapacity(0, post.imageUrls.length);
-    final reference = _db.collection('posts').doc(post.id);
-    final current = await reference.get();
-    if (!current.exists) throw StateError('Post no longer exists.');
-    if (current.data()?['authorId'] != uid) {
-      throw StateError('You can only edit your own posts.');
-    }
-    await reference.update({
-      'title': post.title,
-      'body': post.body,
-      'tags': post.tags,
-      'imageUrls': post.imageUrls,
-    });
   }
 
   @override
@@ -508,6 +497,9 @@ class FirestoreCommunityRepository extends CommunityRepository {
       (data['likedBy'] as List<dynamic>? ?? const []).contains(_uid);
 
   PostModel _toPost(String id, Map<String, dynamic> data) {
+    final imageUrls = (data['imageUrls'] as List<dynamic>? ?? const [])
+        .cast<String>();
+    final videoUrl = data['videoUrl'] as String?;
     return PostModel(
       id: id,
       authorId: data['authorId'] as String?,
@@ -518,8 +510,13 @@ class FirestoreCommunityRepository extends CommunityRepository {
       title: data['title'] as String? ?? '',
       body: data['body'] as String? ?? '',
       tags: (data['tags'] as List<dynamic>? ?? const []).cast<String>(),
-      imageUrls: (data['imageUrls'] as List<dynamic>? ?? const [])
-          .cast<String>(),
+      imageUrls: imageUrls,
+      mediaType: PostModel.readMediaType(
+        data['mediaType'],
+        imageUrls: imageUrls,
+        videoUrl: videoUrl,
+      ),
+      videoUrl: videoUrl,
       likeCount: (data['likeCount'] as num?)?.toInt() ?? 0,
       viewCount: (data['viewCount'] as num?)?.toInt() ?? 0,
       likedByMe: _likedByMe(data),
